@@ -1,33 +1,42 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AR Цветок</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  </head>
-  <body style="margin:0; overflow:hidden;">
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-    >
-      <a-marker preset="hiro">
+<!-- Цветок -->
+<a-image 
+  id="flower"
+  src="https://cdn-icons-png.flaticon.com/512/415/415733.png"
+  position="0 0.5 0"
+  scale="1 1 1"
+  class="clickable">
+</a-image>
 
-        <a-entity
-          gltf-model="flower.glb"
-          position="0 0 0"
-          scale="2 2 2"
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
-        ></a-entity>
+<!-- Самурай -->
+<a-image 
+  id="samurai"
+  src="https://cdn-icons-png.flaticon.com/512/3048/3048122.png"
+  position="0 0.5 0"
+  scale="1 1 1"
+  visible="false">
+</a-image>
 
-      </a-marker>
+<!--  Фон (сад) -->
+<a-plane 
+  id="garden"
+  src="https://cdn.pixabay.com/photo/2017/05/31/10/23/japan-2358843_1280.jpg"
+  position="0 -0.5 -1"
+  width="3"
+  height="2"
+  visible="false">
+</a-plane>
 
-      <a-entity camera></a-entity>
-    </a-scene>
-  </body>
-</html>
+<!--  Вопрос -->
+<a-text 
+  id="question"
+  value="Где родина растения?"
+  position="0 1.5 0"
+  visible="false">
+</a-text>
 
-<!-- https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png -->
+<!-- Ответы -->
+<a-text value="Япония" position="-1 1 0" class="answer" visible="false"></a-text>
+<a-text value="Африка" position="0 1 0" class="answer" visible="false"></a-text>
+<a-text value="Европа" position="1 1 0" class="answer" visible="false"></a-text>
+
  
