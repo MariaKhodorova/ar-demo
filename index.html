@@ -1,116 +1,34 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AR Викторина</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AR Цветок</title>
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+</head>
+<body style="margin:0; overflow:hidden;">
+<a-scene
+embedded
+arjs="sourceType: webcam; debugUIEnabled: false;"
+vr-mode-ui="enabled: false"
+>
+<a-marker preset="hiro">
 
-    <script>
-      AFRAME.registerComponent('quiz', {
-        init: function () {
-          const flower = document.getElementById('flower');
-          const samurai = document.getElementById('samurai');
-          const garden = document.getElementById('garden');
-          const question = document.getElementById('question');
-          const answers = document.querySelectorAll('.answer');
+  <a-entity rotation="-90 0 0">
 
-          // Клик на цветок — запускает викторину
-          flower.addEventListener('click', function () {
-            flower.setAttribute('visible', false);
-            samurai.setAttribute('visible', true);
-            garden.setAttribute('visible', true);
-            question.setAttribute('visible', true);
-            answers.forEach(a => a.setAttribute('visible', true));
-          });
+    <a-entity
+      gltf-model="cactus.glb"
+      position="0 0 0"
+      scale="2 2 2"
+      animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
+    ></a-entity>
 
-          // Клик на ответы
-          answers.forEach(function (answer) {
-            answer.addEventListener('click', function () {
-              const val = answer.getAttribute('value');
-              if (val === 'Япония') {
-                question.setAttribute('value', '✓ Верно! Сакура родом из Японии 🌸');
-                question.setAttribute('color', '#00e676');
-              } else {
-                question.setAttribute('value', '✗ Неверно! Попробуй ещё раз');
-                question.setAttribute('color', '#ff1744');
-              }
-              // Скрыть ответы после выбора
-              answers.forEach(a => a.setAttribute('visible', false));
-            });
-          });
-        }
-      });
-    </script>
-  </head>
+  </a-entity>
 
-  <body style="margin:0; overflow:hidden;">
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-      cursor="rayOrigin: mouse"
-      raycaster="objects: .clickable, .answer"
-    >
-      <a-marker preset="hiro" quiz>
-
-        <!-- Цветок — кликабельный -->
-        <a-image
-          id="flower"
-          src="https://cdn-icons-png.flaticon.com/512/415/415733.png"
-          position="0 0.5 0"
-          scale="1 1 1"
-          class="clickable"
-          animation__hover="property: scale; to: 1.1 1.1 1.1; dur: 200; startEvents: mouseenter"
-          animation__unhover="property: scale; to: 1 1 1; dur: 200; startEvents: mouseleave"
-        ></a-image>
-
-        <!-- Самурай -->
-        <a-image
-          id="samurai"
-          src="https://cdn-icons-png.flaticon.com/512/3048/3048122.png"
-          position="0 0.5 0"
-          scale="1 1 1"
-          visible="false"
-        ></a-image>
-
-        <!-- Фон (сад) -->
-        <a-plane
-          id="garden"
-          src="https://cdn.pixabay.com/photo/2017/05/31/10/23/japan-2358843_1280.jpg"
-          position="0 -0.5 -1"
-          width="3"
-          height="2"
-          visible="false"
-        ></a-plane>
-
-        <!-- Вопрос -->
-        <a-text
-          id="question"
-          value="Где родина растения?"
-          position="-0.8 1.5 0"
-          width="2"
-          color="#ffffff"
-          visible="false"
-        ></a-text>
-
-        <!-- Ответы -->
-        <a-text value="Япония" position="-1.2 1.1 0" color="#ffeb3b" class="answer clickable" visible="false"
-          animation__hover="property: color; to: #ffffff; dur: 100; startEvents: mouseenter"
-          animation__unhover="property: color; to: #ffeb3b; dur: 100; startEvents: mouseleave"
-        ></a-text>
-        <a-text value="Африка" position="-0.1 1.1 0" color="#ffeb3b" class="answer clickable" visible="false"
-          animation__hover="property: color; to: #ffffff; dur: 100; startEvents: mouseenter"
-          animation__unhover="property: color; to: #ffeb3b; dur: 100; startEvents: mouseleave"
-        ></a-text>
-        <a-text value="Европа" position="0.8 1.1 0" color="#ffeb3b" class="answer clickable" visible="false"
-          animation__hover="property: color; to: #ffffff; dur: 100; startEvents: mouseenter"
-          animation__unhover="property: color; to: #ffeb3b; dur: 100; startEvents: mouseleave"
-        ></a-text>
-
-      </a-marker>
-      <a-entity camera></a-entity>
-    </a-scene>
-  </body>
+</a-marker>
+<a-entity camera></a-entity>
+</a-scene>
+</body>
 </html>
+<!-- https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png -->
