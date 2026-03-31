@@ -1,132 +1,137 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AR Цветок</title>
+  <meta charset="utf-8">
+  <title>AR Cactus Flower</title>
 
-<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 
-<style>
-#fact, #question {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.7);
-  color: white;
-  padding: 12px 18px;
-  border-radius: 10px;
-  font-family: sans-serif;
-  display: none;
-}
-
-#fact { bottom: 80px; }
-#question { bottom: 20px; }
-</style>
-
+  <!-- AR.js -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 </head>
 
-<body style="margin:0; overflow:hidden;">
+<body style="margin: 0; overflow: hidden;">
 
-<div id="fact">
-Цветёт только ночью, цветок живёт один день
-</div>
+<a-scene embedded arjs>
 
-<div id="question">
-Почему растению выгодно цвести ночью?
-</div>
+  <!-- Небо -->
+  <a-sky id="sky" color="#87CEEB"></a-sky>
 
-<a-scene
-embedded
-arjs="sourceType: webcam; debugUIEnabled: false;"
-vr-mode-ui="enabled: false"
->
+  <a-marker preset="hiro">
 
-<!-- Свет -->
-<a-entity id="light" light="type: directional; intensity: 1"></a-entity>
+    <!-- КАКТУС -->
+    <a-entity id="cactus"
+              geometry="primitive: cylinder; radius: 0.25; height: 1.2"
+              material="color: green"
+              position="0 0.6 0">
+    </a-entity>
 
-<a-marker preset="hiro">
+    <!-- ЦВЕТОК -->
+    <a-entity id="flower"
+              geometry="primitive: sphere"
+              material="color: pink"
+              position="0 1.4 0"
+              scale="0 0 0"
+              visible="true">
+    </a-entity>
 
-<a-entity rotation="-90 0 0">
+    <!-- ФАКТ -->
+    <a-text id="fact"
+            value="Цветёт только ночью\nцветок живёт один день"
+            position="-1 1.5 0"
+            color="white"
+            align="center"
+            visible="false">
+    </a-text>
 
-<a-entity
-id="flower"
-gltf-model="Cactus.glb"
-position="0 0 0"
-scale="0.5 0.5 0.5"
-visible="false"
-></a-entity>
+    <!-- ВОПРОС -->
+    <a-text id="question"
+            value="Почему растению выгодно\nцвести ночью?"
+            position="-1 1.5 0"
+            color="yellow"
+            align="center"
+            visible="false">
+    </a-text>
 
-</a-entity>
-</a-marker>
+    <!-- СВЕТ -->
+    <a-light id="light" type="ambient" color="#ffffff"></a-light>
 
-<a-entity camera></a-entity>
+  </a-marker>
+
+  <a-entity camera></a-entity>
 
 </a-scene>
 
 <script>
-const flower = document.querySelector('#flower');
-const light = document.querySelector('#light');
-const fact = document.getElementById('fact');
-const question = document.getElementById('question');
+let flower = document.querySelector("#flower");
+let fact = document.querySelector("#fact");
+let question = document.querySelector("#question");
+let light = document.querySelector("#light");
+let sky = document.querySelector("#sky");
 
-// ⏱ Таймлайн (можешь менять длительность)
-setTimeout(startNight, 2000);      // ночь через 2 сек
+// === 1. День (старт) ===
+// ничего не делаем — всё уже светлое
 
-function startNight() {
-  console.log("Ночь");
+// === 2. Наступает ночь ===
+setTimeout(() => {
+  light.setAttribute("color", "#223344");
+  sky.setAttribute("color", "#0b0f2a");
+  fact.setAttribute("visible", true);
+}, 5000);
 
-  light.setAttribute('light', 'intensity', 0.2);
-
-  flower.setAttribute('visible', true);
-
-  // 🌸 Расцвет
-  flower.setAttribute('animation__scale', {
-    property: 'scale',
-    to: '1 1 1',
-    dur: 3000,
-    easing: 'easeOutElastic'
+// === 3. Цветок расцветает на кактусе ===
+setTimeout(() => {
+  flower.setAttribute("animation__grow", {
+    property: "scale",
+    from: "0 0 0",
+    to: "1 1 1",
+    dur: 4000,
+    easing: "easeOutElastic"
   });
 
-  fact.style.display = 'block';
-
-  setTimeout(wiltFlower, 5000);
-}
-
-function wiltFlower() {
-  console.log("Увядание");
-
-  flower.setAttribute('animation__wilt', {
-    property: 'rotation',
-    to: '0 0 90',
-    dur: 3000
+  flower.setAttribute("animation__rotate", {
+    property: "rotation",
+    to: "0 360 0",
+    dur: 4000
   });
 
-  flower.setAttribute('animation__shrink', {
-    property: 'scale',
-    to: '0.2 0.2 0.2',
-    dur: 3000
+}, 10000);
+
+// === 4. Увядание ===
+setTimeout(() => {
+  flower.setAttribute("animation__shrink", {
+    property: "scale",
+    to: "0.2 0.2 0.2",
+    dur: 4000,
+    easing: "easeInOutQuad"
   });
 
-  setTimeout(showQuestion, 2000);
-  setTimeout(startDay, 5000);
-}
+  flower.setAttribute("animation__color", {
+    property: "material.color",
+    to: "#5a2d0c",
+    dur: 4000
+  });
 
-function showQuestion() {
-  question.style.display = 'block';
-}
+}, 20000);
 
-function startDay() {
-  console.log("День");
+// полностью исчезает
+setTimeout(() => {
+  flower.setAttribute("visible", false);
+}, 24000);
 
-  light.setAttribute('light', 'intensity', 1);
+// === 5. Новый день ===
+setTimeout(() => {
+  light.setAttribute("color", "#ffffff");
+  sky.setAttribute("color", "#87CEEB");
+  fact.setAttribute("visible", false);
+}, 30000);
 
-  flower.setAttribute('visible', false);
+// === 6. Вопрос ===
+setTimeout(() => {
+  question.setAttribute("visible", true);
+}, 35000);
 
-  fact.style.display = 'none';
-  question.style.display = 'none';
-}
 </script>
 
 </body>
