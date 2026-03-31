@@ -1,471 +1,533 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AR Цветок Ночи</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AR Кактус</title>
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet"/>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { overflow:hidden; font-family:'Cormorant Garamond',Georgia,serif; }
 
-  body { overflow: hidden; font-family: 'Georgia', serif; }
+/* ── overlay sky tint ── */
+#sky {
+  position:fixed; inset:0; z-index:5;
+  pointer-events:none;
+  background: radial-gradient(ellipse at 20% 10%, rgba(255,220,80,0.18) 0%, transparent 60%);
+  transition: background 3s ease;
+}
 
-  /* ── Sky overlay ── */
-  #sky-overlay {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 10;
-    transition: background 3s ease;
-    background: rgba(135, 180, 255, 0.18); /* day tint */
-  }
+/* ── stars canvas ── */
+#stars-canvas {
+  position:fixed; inset:0; z-index:6;
+  pointer-events:none; opacity:0;
+  transition: opacity 2s ease;
+}
 
-  /* ── Stars ── */
-  #stars {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 11;
-    opacity: 0;
-    transition: opacity 2s ease;
-  }
-  .star {
-    position: absolute;
-    border-radius: 50%;
-    background: #fff;
-    animation: twinkle 2s infinite alternate;
-  }
-  @keyframes twinkle {
-    from { opacity: 0.3; }
-    to   { opacity: 1; }
-  }
+/* ── phase label ── */
+#phase {
+  position:fixed; top:22px; left:50%; transform:translateX(-50%);
+  z-index:30;
+  font-family:'Cinzel',serif;
+  font-size:12px; letter-spacing:5px; text-transform:uppercase;
+  color:#fff; text-shadow:0 0 16px rgba(0,0,0,0.8);
+  background:rgba(0,0,0,0.3); backdrop-filter:blur(8px);
+  padding:6px 20px; border-radius:20px;
+  opacity:0; transition:opacity 1s ease;
+  white-space:nowrap;
+}
 
-  /* ── Sun / Moon ── */
-  #celestial {
-    position: fixed;
-    top: 24px;
-    right: 36px;
-    z-index: 12;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #ffe066, #ffb300);
-    box-shadow: 0 0 32px 10px #ffda0099;
-    transition: background 3s ease, box-shadow 3s ease, top 3s ease, right 3s ease;
-  }
-  #celestial.moon {
-    background: radial-gradient(circle at 38% 38%, #e8e8ff, #b0b8d8);
-    box-shadow: 0 0 24px 6px #8899cc55;
-  }
+/* ── fact card ── */
+#fact {
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(16px);
+  z-index:30; width:min(460px,90vw);
+  background:rgba(4,6,28,0.85); backdrop-filter:blur(16px);
+  border:1px solid rgba(180,140,255,0.28);
+  border-radius:20px; padding:18px 26px;
+  text-align:center;
+  box-shadow:0 0 40px rgba(120,60,220,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
+  opacity:0; pointer-events:none;
+  transition:opacity 1.4s ease, transform 1.4s ease;
+}
+#fact.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
+#fact .fi { font-size:22px; margin-bottom:6px; }
+#fact .fl { font-family:'Cinzel',serif; font-size:9px; letter-spacing:4px; color:#a880f0; text-transform:uppercase; margin-bottom:8px; }
+#fact .ft { font-size:clamp(14px,3.8vw,17px); font-style:italic; color:#ede8ff; line-height:1.55; }
 
-  /* ── Phase label ── */
-  #phase-label {
-    position: fixed;
-    top: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 20;
-    color: #fff;
-    font-size: 13px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-shadow: 0 2px 8px #000a;
-    opacity: 0;
-    transition: opacity 1s ease;
-    background: rgba(0,0,0,0.28);
-    padding: 4px 18px;
-    border-radius: 20px;
-    backdrop-filter: blur(6px);
-  }
+/* ── question ── */
+#qwrap {
+  position:fixed; inset:0; z-index:40;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(1,2,14,0.68); backdrop-filter:blur(10px);
+  opacity:0; pointer-events:none;
+  transition:opacity 0.9s ease;
+}
+#qwrap.show { opacity:1; pointer-events:auto; }
+#qbox {
+  width:min(460px,88vw);
+  background:linear-gradient(150deg,#07062e,#140930);
+  border:1px solid rgba(200,120,255,0.32);
+  border-radius:26px; padding:44px 34px 32px; text-align:center;
+  box-shadow:0 12px 60px rgba(100,40,200,0.35);
+  opacity:0; transform:translateY(32px) scale(0.95);
+  transition:all 0.85s cubic-bezier(0.34,1.4,0.64,1);
+}
+#qwrap.show #qbox { opacity:1; transform:none; }
+#qbox .qg { font-size:46px; margin-bottom:14px; filter:drop-shadow(0 0 16px #ff88cc); }
+#qbox .ql { font-family:'Cinzel',serif; font-size:9px; letter-spacing:5px; color:#b080ff; text-transform:uppercase; margin-bottom:18px; }
+#qbox .qt { font-size:clamp(16px,4vw,20px); color:#efe8ff; line-height:1.65; margin-bottom:28px; font-style:italic; }
+#qbox button {
+  font-family:'Cinzel',serif; font-size:12px; letter-spacing:2px;
+  background:linear-gradient(130deg,#5015b8,#b040ff);
+  color:#fff; border:none; border-radius:50px;
+  padding:12px 32px; cursor:pointer;
+  box-shadow:0 4px 24px rgba(160,50,255,0.5);
+  transition:transform 0.2s, box-shadow 0.2s;
+}
+#qbox button:hover { transform:scale(1.06); box-shadow:0 6px 32px rgba(160,50,255,0.7); }
 
-  /* ── Fact card ── */
-  #fact-card {
-    position: fixed;
-    bottom: 36px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    z-index: 30;
-    background: rgba(10, 10, 30, 0.82);
-    border: 1px solid rgba(150, 180, 255, 0.35);
-    border-radius: 16px;
-    padding: 14px 22px;
-    max-width: 88vw;
-    text-align: center;
-    backdrop-filter: blur(12px);
-    opacity: 0;
-    transition: opacity 1.2s ease, transform 1.2s ease;
-    pointer-events: none;
-  }
-  #fact-card.visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
-  }
-  #fact-card .fact-icon {
-    font-size: 22px;
-    margin-bottom: 6px;
-  }
-  #fact-card .fact-label {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: #8ab4ff;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-  #fact-card .fact-text {
-    font-size: 15px;
-    color: #eef2ff;
-    line-height: 1.5;
-    font-style: italic;
-  }
-
-  /* ── Question modal ── */
-  #question-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,5,0.65);
-    backdrop-filter: blur(8px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 1s ease;
-  }
-  #question-modal.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .q-box {
-    background: linear-gradient(145deg, #0b0f2a, #1a1040);
-    border: 1px solid rgba(160, 120, 255, 0.4);
-    border-radius: 24px;
-    padding: 36px 32px 28px;
-    max-width: 82vw;
-    text-align: center;
-    box-shadow: 0 8px 48px #6030ff33;
-    animation: floatIn 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
-  }
-  @keyframes floatIn {
-    from { transform: translateY(40px) scale(0.92); opacity: 0; }
-    to   { transform: none; opacity: 1; }
-  }
-  .q-icon { font-size: 36px; margin-bottom: 12px; }
-  .q-label {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: #a080ff;
-    text-transform: uppercase;
-    margin-bottom: 14px;
-  }
-  .q-text {
-    font-size: 17px;
-    color: #e8eaff;
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
-  .q-close {
-    background: linear-gradient(135deg, #5020cc, #8040ff);
-    color: #fff;
-    border: none;
-    border-radius: 50px;
-    padding: 10px 28px;
-    font-size: 14px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    box-shadow: 0 4px 18px #6030cc55;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .q-close:hover { transform: scale(1.05); box-shadow: 0 6px 24px #6030cc99; }
-
-  /* ── Timeline bar ── */
-  #timeline {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 0%;
-    height: 3px;
-    background: linear-gradient(90deg, #ffe066, #ff8000, #6644ff, #4488ff, #ffe066);
-    background-size: 300% 100%;
-    animation: gradShift 20s linear infinite;
-    z-index: 40;
-    transition: width 0.5s linear;
-  }
-  @keyframes gradShift {
-    from { background-position: 0% 0; }
-    to   { background-position: 300% 0; }
-  }
-
-  /* ── Flower 2D overlay (bloom/wither) ── */
-  #flower-overlay {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 15;
-    font-size: 64px;
-    opacity: 0;
-    filter: drop-shadow(0 0 18px #ff88aacc);
-    transition: opacity 1.5s ease, font-size 1s ease, filter 1.5s ease;
-    pointer-events: none;
-    text-align: center;
-  }
-  #flower-overlay.bloomed {
-    opacity: 1;
-    font-size: 80px;
-    filter: drop-shadow(0 0 28px #ff44aaff);
-  }
-  #flower-overlay.withered {
-    opacity: 0.4;
-    font-size: 52px;
-    filter: drop-shadow(0 0 6px #996644aa) grayscale(0.6);
-  }
-  #flower-overlay.gone { opacity: 0; }
+/* ── progress ── */
+#bar {
+  position:fixed; bottom:0; left:0; height:3px; width:0%;
+  background:linear-gradient(90deg,#ffe066,#ff6030,#c040ff,#40aaff,#ffe066);
+  background-size:300% 100%;
+  animation:barmove 14s linear infinite;
+  box-shadow:0 0 8px rgba(200,100,255,0.5);
+  transition:width 0.4s linear; z-index:50;
+}
+@keyframes barmove { to{background-position:300% 0} }
 </style>
 </head>
 <body>
 
-<!-- Sky + Celestial body -->
-<div id="sky-overlay"></div>
-<div id="stars"></div>
-<div id="celestial"></div>
+<div id="sky"></div>
+<canvas id="stars-canvas"></canvas>
+<div id="phase"></div>
 
-<!-- Phase label -->
-<div id="phase-label">День</div>
-
-<!-- Flower emoji overlay (shows state) -->
-<div id="flower-overlay">🌵</div>
-
-<!-- Fact card -->
-<div id="fact-card">
-  <div class="fact-icon">🌙</div>
-  <div class="fact-label">Факт о кактусе</div>
-  <div class="fact-text">Цветёт только ночью — цветок живёт один день</div>
+<div id="fact">
+  <div class="fi">🌙</div>
+  <div class="fl">Факт о кактусе</div>
+  <div class="ft">Цветёт только ночью — цветок живёт один день</div>
 </div>
 
-<!-- Question modal -->
-<div id="question-modal">
-  <div class="q-box">
-    <div class="q-icon">🤔</div>
-    <div class="q-label">Вопрос для размышления</div>
-    <div class="q-text">Почему растению выгодно цвести ночью?</div>
-    <button class="q-close" onclick="closeQuestion()">Подумаю над этим ✨</button>
+<div id="qwrap">
+  <div id="qbox">
+    <div class="qg">🌺</div>
+    <div class="ql">Вопрос для размышления</div>
+    <div class="qt">Почему растению выгодно цвести ночью?</div>
+    <button onclick="document.getElementById('qwrap').classList.remove('show')">Задумаюсь об этом ✨</button>
   </div>
 </div>
 
-<!-- Timeline progress -->
-<div id="timeline"></div>
+<div id="bar"></div>
 
-<!-- AR Scene -->
+<!-- ═══ A-FRAME AR SCENE ═══════════════════════════════════════ -->
 <a-scene
   embedded
-  arjs="sourceType: webcam; debugUIEnabled: false;"
-  vr-mode-ui="enabled: false"
+  arjs="sourceType:webcam; debugUIEnabled:false; detectionMode:mono_and_matrix; matrixCodeType:3x3;"
+  renderer="logarithmicDepthBuffer:true; antialias:true;"
+  vr-mode-ui="enabled:false"
 >
-  <a-marker preset="hiro">
-    <a-entity id="root-entity" rotation="-90 0 0">
-      <a-entity
-        id="cactus-model"
-        gltf-model="Cactus_037e_by_get3dmodels.glb"
-        position="0 0 0"
-        scale="1 1 1"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
-      ></a-entity>
+  <a-assets>
+    <!-- Gradient textures baked via canvas -->
+  </a-assets>
 
-      <!-- Petals (bloom effect) - simple torus rings as flower petals -->
-      <a-entity id="bloom-group" visible="false">
-        <a-torus id="petal1" position="0 0.6 0" rotation="0 0 0"
-          radius="0.18" radius-tubular="0.05"
-          color="#ff66aa" opacity="0.9"
-          animation__rot="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"
-          animation__scale="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; dur: 2000; easing: easeOutElastic">
-        </a-torus>
-        <a-torus id="petal2" position="0 0.6 0" rotation="0 45 90"
-          radius="0.22" radius-tubular="0.04"
-          color="#ff44cc" opacity="0.7"
-          animation__rot="property: rotation; to: 360 45 90; loop: true; dur: 5000; easing: linear"
-          animation__scale="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; dur: 2000; easing: easeOutElastic">
-        </a-torus>
-        <a-sphere position="0 0.6 0" radius="0.09" color="#ffdd00"
-          animation__scale="property: scale; from: 0 0 0; to: 1 1 1; dur: 1500; easing: easeOutElastic"
-          animation__glow="property: color; from: #ffdd00; to: #ffffff; dir: alternate; loop: true; dur: 800">
-        </a-sphere>
-        <!-- Glow halo -->
-        <a-sphere position="0 0.6 0" radius="0.3" color="#ff88cc"
-          opacity="0.18" side="back"
-          animation__pulse="property: scale; from: 0.8 0.8 0.8; to: 1.2 1.2 1.2; dir: alternate; loop: true; dur: 1200">
-        </a-sphere>
+  <a-marker preset="hiro" id="hiro-marker">
+
+    <!-- ══ ROOT — все объекты ══ -->
+    <a-entity id="ar-root">
+
+      <!-- ────────────────────────────────────────────
+           КАКТУС (процедурный из примитивов)
+           Всё в метрах, центр основания = 0 0 0
+      ──────────────────────────────────────────── -->
+
+      <!-- Тень на земле -->
+      <a-circle id="cactus-shadow"
+        radius="0.18" rotation="-90 0 0" position="0 0.002 0"
+        color="#000" opacity="0.18" material="transparent:true">
+      </a-circle>
+
+      <!-- ── Основной ствол ── -->
+      <!-- Нижняя часть (толстая) -->
+      <a-cylinder id="trunk-bot"
+        position="0 0.18 0"
+        radius-bottom="0.085" radius-top="0.072" height="0.36"
+        color="#2d7a24" segments-radial="10"
+        material="roughness:0.85; metalness:0.05">
+      </a-cylinder>
+      <!-- Верхняя часть (сужается) -->
+      <a-cylinder id="trunk-mid"
+        position="0 0.46 0"
+        radius-bottom="0.072" radius-top="0.058" height="0.24"
+        color="#2d7a24" segments-radial="10"
+        material="roughness:0.85; metalness:0.05">
+      </a-cylinder>
+      <!-- Верхушка (купол) -->
+      <a-sphere id="trunk-top"
+        position="0 0.60 0" radius="0.062"
+        color="#2d7a24" segments-height="8" segments-width="10"
+        material="roughness:0.85">
+      </a-sphere>
+
+      <!-- ── Рёбра ствола (тёмные полоски) ── -->
+      <a-cylinder position="0.075 0.28 0"   radius="0.008" height="0.52" color="#1d5618" rotation="0 0 4"  material="roughness:1"></a-cylinder>
+      <a-cylinder position="-0.075 0.28 0"  radius="0.008" height="0.52" color="#1d5618" rotation="0 0 -4" material="roughness:1"></a-cylinder>
+      <a-cylinder position="0 0.28 0.075"   radius="0.008" height="0.52" color="#1d5618" rotation="4 0 0"  material="roughness:1"></a-cylinder>
+      <a-cylinder position="0 0.28 -0.075"  radius="0.008" height="0.52" color="#1d5618" rotation="-4 0 0" material="roughness:1"></a-cylinder>
+
+      <!-- ── Колючки ствола ── -->
+      <a-entity id="spines-trunk">
+        <!-- ряд 1 -->
+        <a-cylinder position="0.088 0.12 0"    radius="0.003" height="0.04" color="#e8d8a0" rotation="0 0 90"></a-cylinder>
+        <a-cylinder position="-0.088 0.12 0"   radius="0.003" height="0.04" color="#e8d8a0" rotation="0 0 -90"></a-cylinder>
+        <a-cylinder position="0 0.12 0.088"    radius="0.003" height="0.04" color="#e8d8a0" rotation="90 0 0"></a-cylinder>
+        <a-cylinder position="0 0.12 -0.088"   radius="0.003" height="0.04" color="#e8d8a0" rotation="-90 0 0"></a-cylinder>
+        <!-- ряд 2 -->
+        <a-cylinder position="0.088 0.24 0"    radius="0.003" height="0.04" color="#ddd0a0" rotation="0 0 90"></a-cylinder>
+        <a-cylinder position="-0.088 0.24 0"   radius="0.003" height="0.04" color="#ddd0a0" rotation="0 0 -90"></a-cylinder>
+        <a-cylinder position="0 0.24 0.088"    radius="0.003" height="0.04" color="#ddd0a0" rotation="90 0 0"></a-cylinder>
+        <a-cylinder position="0 0.24 -0.088"   radius="0.003" height="0.04" color="#ddd0a0" rotation="-90 0 0"></a-cylinder>
+        <!-- ряд 3 -->
+        <a-cylinder position="0.082 0.38 0"    radius="0.003" height="0.04" color="#ddd0a0" rotation="0 0 90"></a-cylinder>
+        <a-cylinder position="-0.082 0.38 0"   radius="0.003" height="0.04" color="#ddd0a0" rotation="0 0 -90"></a-cylinder>
+        <a-cylinder position="0 0.38 0.082"    radius="0.003" height="0.04" color="#ddd0a0" rotation="90 0 0"></a-cylinder>
+        <a-cylinder position="0 0.38 -0.082"   radius="0.003" height="0.04" color="#ddd0a0" rotation="-90 0 0"></a-cylinder>
+        <!-- диагональные -->
+        <a-cylinder position="0.062 0.12 0.062"  radius="0.002" height="0.035" color="#e8d8a0" rotation="45 0 45"></a-cylinder>
+        <a-cylinder position="-0.062 0.12 0.062" radius="0.002" height="0.035" color="#e8d8a0" rotation="45 0 -45"></a-cylinder>
+        <a-cylinder position="0.062 0.30 -0.062" radius="0.002" height="0.035" color="#e8d8a0" rotation="-45 0 45"></a-cylinder>
+        <a-cylinder position="-0.062 0.30 -0.062"radius="0.002" height="0.035" color="#e8d8a0" rotation="-45 0 -45"></a-cylinder>
       </a-entity>
 
-      <!-- Night light (point light) -->
-      <a-light id="night-light" type="point" color="#8844ff" intensity="0" position="0 1 0"
-        animation__int="property: intensity; from: 0; to: 1.2; dur: 3000">
-      </a-light>
-    </a-entity>
+      <!-- ── ЛЕВАЯ РУКА ── -->
+      <!-- Горизонтальный сегмент -->
+      <a-cylinder id="arm-l-h"
+        position="-0.175 0.35 0"
+        radius-bottom="0.044" radius-top="0.038" height="0.18"
+        color="#2d7a24" rotation="0 0 88" segments-radial="8"
+        material="roughness:0.85">
+      </a-cylinder>
+      <!-- Вертикальный подъём -->
+      <a-cylinder id="arm-l-v"
+        position="-0.27 0.44 0"
+        radius-bottom="0.038" radius-top="0.030" height="0.20"
+        color="#2d7a24" rotation="0 0 0" segments-radial="8"
+        material="roughness:0.85">
+      </a-cylinder>
+      <!-- Верхушка руки -->
+      <a-sphere position="-0.27 0.555 0" radius="0.032" color="#2d7a24" segments-height="6" segments-width="8"></a-sphere>
+      <!-- Колючки левой руки -->
+      <a-cylinder position="-0.175 0.35 0.048"  radius="0.002" height="0.032" color="#e8d8a0" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position="-0.175 0.35 -0.048" radius="0.002" height="0.032" color="#e8d8a0" rotation="-90 0 0"></a-cylinder>
+      <a-cylinder position="-0.27 0.48 0.038"   radius="0.002" height="0.030" color="#e8d8a0" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position="-0.27 0.48 -0.038"  radius="0.002" height="0.030" color="#e8d8a0" rotation="-90 0 0"></a-cylinder>
+      <a-cylinder position="-0.315 0.44 0"      radius="0.002" height="0.030" color="#e8d8a0" rotation="0 0 90"></a-cylinder>
+
+      <!-- ── ПРАВАЯ РУКА (ниже, короче) ── -->
+      <a-cylinder id="arm-r-h"
+        position="0.165 0.24 0"
+        radius-bottom="0.040" radius-top="0.034" height="0.15"
+        color="#2d7a24" rotation="0 0 -86" segments-radial="8"
+        material="roughness:0.85">
+      </a-cylinder>
+      <a-cylinder id="arm-r-v"
+        position="0.248 0.32 0"
+        radius-bottom="0.034" radius-top="0.026" height="0.17"
+        color="#2d7a24" rotation="0 0 0" segments-radial="8"
+        material="roughness:0.85">
+      </a-cylinder>
+      <a-sphere position="0.248 0.415 0" radius="0.028" color="#2d7a24" segments-height="6" segments-width="8"></a-sphere>
+      <a-cylinder position="0.165 0.24 0.044"   radius="0.002" height="0.030" color="#e8d8a0" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position="0.165 0.24 -0.044"  radius="0.002" height="0.030" color="#e8d8a0" rotation="-90 0 0"></a-cylinder>
+      <a-cylinder position="0.248 0.35 0.034"   radius="0.002" height="0.028" color="#e8d8a0" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position="0.295 0.32 0"       radius="0.002" height="0.028" color="#e8d8a0" rotation="0 0 90"></a-cylinder>
+
+      <!-- ── Земля / субстрат ── -->
+      <a-cylinder
+        position="0 0.005 0" radius="0.28" height="0.01"
+        color="#8B6914"
+        material="roughness:1; metalness:0">
+      </a-cylinder>
+      <!-- камушки -->
+      <a-sphere position="0.15 0.012 0.10"  radius="0.024" color="#7a6030" material="roughness:1"></a-sphere>
+      <a-sphere position="-0.18 0.012 0.06" radius="0.018" color="#906040" material="roughness:1"></a-sphere>
+      <a-sphere position="0.08 0.012 -0.18" radius="0.020" color="#8a6535" material="roughness:1"></a-sphere>
+      <a-sphere position="-0.10 0.012 -0.15"radius="0.016" color="#70582a" material="roughness:1"></a-sphere>
+      <a-sphere position="0.20 0.012 -0.08" radius="0.014" color="#9a7040" material="roughness:1"></a-sphere>
+
+      <!-- ══════════════════════════════════════════
+           ЦВЕТОК (скрыт до ночи)
+      ══════════════════════════════════════════ -->
+      <a-entity id="flower-group" visible="false">
+
+        <!-- Светящийся ореол -->
+        <a-sphere id="flower-glow"
+          position="0 0.66 0" radius="0.12"
+          color="#ff50b0" opacity="0.18" side="back"
+          material="transparent:true"
+          animation="property:scale; from:0.8 0.8 0.8; to:1.2 1.2 1.2; dir:alternate; loop:true; dur:1200; easing:easeInOutSine">
+        </a-sphere>
+
+        <!-- Лепестки (8 штук через rotation) -->
+        <a-entity position="0 0.655 0" id="petals-spin"
+          animation="property:rotation; from:0 0 0; to:0 360 0; loop:true; dur:8000; easing:linear">
+
+          <a-entity rotation="0 0 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff3d9a"
+              scale-x="1.8" scale-z="0.7"
+              material="roughness:0.3; metalness:0.1; emissive:#a00050; emissiveIntensity:0.3"
+              geometry="primitive:sphere; scaleX:1.8; scaleZ:0.7">
+            </a-sphere>
+          </a-entity>
+          <a-entity rotation="0 45 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff55aa"
+              material="roughness:0.3; emissive:#900040; emissiveIntensity:0.25">
+            </a-sphere>
+          </a-entity>
+          <a-entity rotation="0 90 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff3d9a"
+              material="roughness:0.3; emissive:#a00050; emissiveIntensity:0.3">
+            </a-sphere>
+          </a-entity>
+          <a-entity rotation="0 135 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff55aa"
+              material="roughness:0.3; emissive:#900040; emissiveIntensity:0.25">
+            </a-sphere>
+          </a-entity>
+          <a-entity rotation="0 180 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff3d9a"
+              material="roughness:0.3; emissive:#a00050; emissiveIntensity:0.3">
+            </a-sphere>
+          </a-entity>
+          <a-entity rotation="0 225 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff55aa"
+              material="roughness:0.3; emissive:#900040; emissiveIntensity:0.25">
+            </a-sphere>
+          </a-entity>
+          <a-entity rotation="0 270 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff3d9a"
+              material="roughness:0.3; emissive:#a00050; emissiveIntensity:0.3">
+            </a-sphere>
+          </a-entity>
+          <a-entity rotation="0 315 0">
+            <a-sphere position="0.065 0 0" radius="0.038" color="#ff55aa"
+              material="roughness:0.3; emissive:#900040; emissiveIntensity:0.25">
+            </a-sphere>
+          </a-entity>
+
+        </a-entity><!-- /petals-spin -->
+
+        <!-- Тычинки -->
+        <a-entity position="0 0.655 0">
+          <a-cylinder position="0 0.025 0"       radius="0.004" height="0.05" color="#ffe040" material="emissive:#cc9900; emissiveIntensity:0.5"></a-cylinder>
+          <a-cylinder position="0.018 0.023 0.018" radius="0.003" height="0.046" color="#ffd020" material="emissive:#cc8800; emissiveIntensity:0.4"></a-cylinder>
+          <a-cylinder position="-0.018 0.023 0.018"radius="0.003" height="0.046" color="#ffd020" material="emissive:#cc8800; emissiveIntensity:0.4"></a-cylinder>
+          <a-cylinder position="0.018 0.023 -0.018"radius="0.003" height="0.046" color="#ffd020" material="emissive:#cc8800; emissiveIntensity:0.4"></a-cylinder>
+          <a-cylinder position="-0.018 0.023 -0.018"radius="0.003" height="0.046" color="#ffd020" material="emissive:#cc8800; emissiveIntensity:0.4"></a-cylinder>
+          <!-- пыльники -->
+          <a-sphere position="0 0.052 0"          radius="0.007" color="#fff080" material="emissive:#ffee00; emissiveIntensity:0.7"></a-sphere>
+          <a-sphere position="0.018 0.048 0.018"  radius="0.006" color="#ffe050" material="emissive:#ffdd00; emissiveIntensity:0.6"></a-sphere>
+          <a-sphere position="-0.018 0.048 0.018" radius="0.006" color="#ffe050" material="emissive:#ffdd00; emissiveIntensity:0.6"></a-sphere>
+          <a-sphere position="0.018 0.048 -0.018" radius="0.006" color="#ffe050" material="emissive:#ffdd00; emissiveIntensity:0.6"></a-sphere>
+          <a-sphere position="-0.018 0.048 -0.018"radius="0.006" color="#ffe050" material="emissive:#ffdd00; emissiveIntensity:0.6"></a-sphere>
+        </a-entity>
+
+        <!-- Ночной свет от цветка -->
+        <a-light id="bloom-light" type="point" color="#ff60c0" intensity="0.8" distance="0.8" position="0 0.7 0"></a-light>
+
+      </a-entity><!-- /flower-group -->
+
+      <!-- ── Ночной ambient ── -->
+      <a-light id="night-ambient" type="ambient" color="#1a0840" intensity="0"></a-light>
+
+      <!-- ── Дневной свет ── -->
+      <a-light id="day-light" type="directional" color="#fff8e0" intensity="1.0" position="1 2 1"></a-light>
+
+    </a-entity><!-- /ar-root -->
   </a-marker>
 
   <a-entity camera></a-entity>
 </a-scene>
 
+<!-- ═══ STARS CANVAS ════════════════════════════════════ -->
 <script>
-// ── Generate stars ──────────────────────────────────────────────
-const starsEl = document.getElementById('stars');
-for (let i = 0; i < 120; i++) {
-  const s = document.createElement('div');
-  s.className = 'star';
-  const size = Math.random() * 2.5 + 0.5;
-  s.style.cssText = `
-    width:${size}px; height:${size}px;
-    top:${Math.random()*80}%;
-    left:${Math.random()*100}%;
-    animation-delay:${Math.random()*3}s;
-    animation-duration:${1.5 + Math.random()*2}s;
-  `;
-  starsEl.appendChild(s);
-}
-
-// ── State machine ────────────────────────────────────────────────
-// Phases (each duration in ms):
-// 0 - DAY        (5s)  sunny, cactus visible, no flower
-// 1 - SUNSET     (4s)  transition
-// 2 - NIGHT      (5s)  dark, flower blooms, fact appears
-// 3 - QUESTION   (3s)  question appears
-// 4 - DAWN       (4s)  flower withers
-// 5 - NEW DAY    (4s)  bright, cactus gone / empty
-const PHASES = [
-  { name: 'День',       dur: 5000 },
-  { name: 'Закат',      dur: 4000 },
-  { name: 'Ночь',       dur: 5000 },
-  { name: 'Вопрос',     dur: 5000 },
-  { name: 'Рассвет',    dur: 4000 },
-  { name: 'Новый день', dur: 4000 },
-];
-const TOTAL = PHASES.reduce((a,p)=>a+p.dur,0);
-
-const skyEl      = document.getElementById('sky-overlay');
-const starsDiv   = document.getElementById('stars');
-const celestial  = document.getElementById('celestial');
-const phaseLabel = document.getElementById('phase-label');
-const factCard   = document.getElementById('fact-card');
-const qModal     = document.getElementById('question-modal');
-const timeline   = document.getElementById('timeline');
-const flowerOv   = document.getElementById('flower-overlay');
-const bloomGrp   = document.getElementById('bloom-group');
-const nightLight = document.getElementById('night-light');
-
-let currentPhase = -1;
-let startTime = Date.now();
-let questionShown = false;
-
-function showPhaseLabel(text, dur=2000) {
-  phaseLabel.textContent = text;
-  phaseLabel.style.opacity = '1';
-  setTimeout(()=>{ phaseLabel.style.opacity='0'; }, dur);
-}
-
-function applyPhase(idx) {
-  if (idx === currentPhase) return;
-  currentPhase = idx;
-
-  switch(idx) {
-    case 0: // DAY
-      skyEl.style.background = 'rgba(135,200,255,0.22)';
-      starsDiv.style.opacity = '0';
-      celestial.className = '';
-      celestial.style.background = 'radial-gradient(circle, #ffe066, #ffb300)';
-      celestial.style.boxShadow = '0 0 32px 10px #ffda0099';
-      celestial.style.top = '24px'; celestial.style.right = '36px';
-      flowerOv.className = '';      // reset
-      flowerOv.textContent = '🌵';
-      flowerOv.style.opacity = '0';
-      bloomGrp && (bloomGrp.setAttribute('visible','false'));
-      if(nightLight) nightLight.setAttribute('intensity','0');
-      factCard.classList.remove('visible');
-      showPhaseLabel('🌞 День');
-      break;
-
-    case 1: // SUNSET
-      skyEl.style.background = 'rgba(255,120,40,0.28)';
-      celestial.style.background = 'radial-gradient(circle, #ff8844, #ff4400)';
-      celestial.style.boxShadow = '0 0 40px 14px #ff660055';
-      celestial.style.top = '60px';
-      showPhaseLabel('🌅 Закат');
-      break;
-
-    case 2: // NIGHT - flower blooms
-      skyEl.style.background = 'rgba(5,5,30,0.72)';
-      starsDiv.style.opacity = '1';
-      celestial.className = 'moon';
-      celestial.style.top = '24px'; celestial.style.right = '36px';
-      flowerOv.textContent = '🌺';
-      setTimeout(()=>{ flowerOv.className = 'bloomed'; }, 1000);
-      bloomGrp && (bloomGrp.setAttribute('visible','true'));
-      if(nightLight) nightLight.setAttribute('intensity','1.2');
-      setTimeout(()=>{ factCard.classList.add('visible'); }, 2000);
-      showPhaseLabel('🌙 Ночь — цветок расцвёл!');
-      break;
-
-    case 3: // QUESTION
-      if (!questionShown) {
-        questionShown = true;
-        qModal.classList.add('visible');
-      }
-      break;
-
-    case 4: // DAWN - flower withers
-      skyEl.style.background = 'rgba(200,100,80,0.3)';
-      starsDiv.style.opacity = '0';
-      celestial.className = '';
-      celestial.style.background = 'radial-gradient(circle, #ffcc88, #ff8833)';
-      celestial.style.boxShadow = '0 0 28px 8px #ffaa4455';
-      flowerOv.className = 'withered';
-      factCard.classList.remove('visible');
-      bloomGrp && (bloomGrp.setAttribute('visible','false'));
-      showPhaseLabel('🌄 Рассвет — цветок увядает');
-      break;
-
-    case 5: // NEW DAY - cactus gone
-      skyEl.style.background = 'rgba(135,200,255,0.22)';
-      celestial.className = '';
-      celestial.style.background = 'radial-gradient(circle, #ffe066, #ffb300)';
-      celestial.style.boxShadow = '0 0 32px 10px #ffda0099';
-      flowerOv.className = 'gone';
-      // Hide cactus model from AR
-      const mdl = document.getElementById('cactus-model');
-      if (mdl) mdl.setAttribute('visible','false');
-      showPhaseLabel('🌞 Новый день — цветка нет');
-      break;
-  }
-}
-
-function closeQuestion() {
-  qModal.classList.remove('visible');
-}
-
-// ── Animation loop ──────────────────────────────────────────────
-function tick() {
-  const elapsed = Date.now() - startTime;
-  const progress = Math.min(elapsed / TOTAL, 1);
-  timeline.style.width = (progress * 100) + '%';
-
-  let acc = 0;
-  for (let i = 0; i < PHASES.length; i++) {
-    acc += PHASES[i].dur;
-    if (elapsed < acc) {
-      applyPhase(i);
-      break;
+(function(){
+  const c=document.getElementById('stars-canvas');
+  const ctx=c.getContext('2d');
+  const stars=[];
+  function resize(){ c.width=innerWidth; c.height=innerHeight; }
+  resize(); window.addEventListener('resize',resize);
+  for(let i=0;i<160;i++) stars.push({
+    x:Math.random(), y:Math.random()*0.8,
+    r:Math.random()*1.6+0.3,
+    ph:Math.random()*Math.PI*2,
+    sp:Math.random()*0.6+0.3
+  });
+  let starsAlpha=0;
+  window._setStars=function(a){ starsAlpha=a; };
+  (function loop(t){
+    ctx.clearRect(0,0,c.width,c.height);
+    if(starsAlpha>0){
+      stars.forEach(s=>{
+        const tw=0.5+0.5*Math.sin(t*0.001*s.sp+s.ph);
+        ctx.save();
+        ctx.globalAlpha=starsAlpha*tw;
+        ctx.beginPath();
+        ctx.arc(s.x*c.width,s.y*c.height,s.r,0,Math.PI*2);
+        ctx.fillStyle='#ffffff';
+        ctx.fill();
+        const g=ctx.createRadialGradient(s.x*c.width,s.y*c.height,0,s.x*c.width,s.y*c.height,s.r*5);
+        g.addColorStop(0,'rgba(200,200,255,0.4)');
+        g.addColorStop(1,'transparent');
+        ctx.globalAlpha=starsAlpha*tw*0.35;
+        ctx.beginPath();
+        ctx.arc(s.x*c.width,s.y*c.height,s.r*5,0,Math.PI*2);
+        ctx.fillStyle=g; ctx.fill();
+        ctx.restore();
+      });
     }
-  }
+    requestAnimationFrame(loop);
+  })(0);
+})();
+</script>
 
-  if (progress < 1) {
-    requestAnimationFrame(tick);
-  }
+<!-- ═══ PHASE STATE MACHINE ══════════════════════════════ -->
+<script>
+// ── Helpers ───────────────────────────────────────────
+function lerp(a,b,t){ return a+(b-a)*t; }
+function el(id){ return document.getElementById(id); }
+function setAttr(id,attr,val){ const e=el(id); if(e) e.setAttribute(attr,val); }
+function setVis(id,v){ const e=el(id); if(e) e.setAttribute('visible',v); }
+
+// ── Phases ────────────────────────────────────────────
+const PHASES=[
+  {name:'🌞  День',    dur:6000},
+  {name:'🌅  Закат',   dur:5000},
+  {name:'🌙  Ночь',    dur:6000},
+  {name:'🌺  Цветок расцвёл', dur:5500},
+  {name:'🌄  Рассвет', dur:5000},
+  {name:'✨  Новый день',dur:5000},
+];
+const TOTAL=PHASES.reduce((a,p)=>a+p.dur,0);
+
+const skyEl    = el('sky');
+const phaseEl  = el('phase');
+const factEl   = el('fact');
+const qEl      = el('qwrap');
+const barEl    = el('bar');
+const starsC   = el('stars-canvas');
+
+let startTime=null, lastPhase=-1, questionShown=false;
+
+function showPhase(name){
+  phaseEl.textContent=name;
+  phaseEl.style.opacity='1';
+  setTimeout(()=>phaseEl.style.opacity='0',2400);
 }
 
-// Start after a tiny delay so scene loads
-setTimeout(()=>{ startTime = Date.now(); tick(); }, 800);
+// Sky overlay backgrounds per phase
+const SKY_STYLES=[
+  // day
+  'radial-gradient(ellipse at 15% 8%, rgba(255,220,80,0.22) 0%, transparent 55%)',
+  // sunset
+  'linear-gradient(180deg, rgba(200,60,20,0.35) 0%, rgba(255,130,30,0.5) 100%)',
+  // night
+  'rgba(2,4,20,0.55)',
+  // bloom (night)
+  'rgba(2,4,20,0.55)',
+  // dawn
+  'linear-gradient(180deg, rgba(80,10,30,0.4) 0%, rgba(220,80,40,0.45) 100%)',
+  // new day
+  'radial-gradient(ellipse at 15% 8%, rgba(255,220,80,0.22) 0%, transparent 55%)',
+];
+
+function applyPhase(pi, blend){
+  // sky
+  skyEl.style.background=SKY_STYLES[pi];
+
+  // stars
+  const starA=
+    pi===1?blend*0.8:
+    pi===2?0.8+blend*0.2:
+    pi===3?1:
+    pi===4?Math.max(1-blend*0.7,0):0;
+  starsC.style.opacity=String(starA);
+  if(window._setStars) window._setStars(starA);
+
+  // day light intensity
+  const dayInt=
+    pi===0?1.0:
+    pi===1?lerp(1,0.3,blend):
+    pi===2||pi===3?0.1:
+    pi===4?lerp(0.1,0.8,blend):
+    1.0;
+  setAttr('day-light','intensity',dayInt);
+
+  // night ambient
+  const nightInt=
+    pi===1?lerp(0,0.6,blend):
+    pi===2||pi===3?0.6:
+    pi===4?lerp(0.6,0,blend):0;
+  setAttr('night-ambient','intensity',nightInt);
+  setAttr('night-ambient','color', pi>=2&&pi<=4?'#1a0840':'#ffffff');
+
+  // cactus visibility
+  setVis('ar-root', pi!==5);
+
+  // flower
+  const flowerOn=(pi===2&&blend>0.4)||pi===3||(pi===4&&blend<0.85);
+  setVis('flower-group', flowerOn);
+
+  // wither: scale down petals on dawn
+  if(pi===4){
+    const ws=Math.max(1-blend*0.8,0.1);
+    const fg=el('flower-group');
+    if(fg) fg.setAttribute('scale',`${ws} ${ws} ${ws}`);
+  } else if(pi===2||pi===3){
+    const fg=el('flower-group');
+    if(fg) fg.setAttribute('scale','1 1 1');
+  }
+
+  // bloom glow intensity
+  const bloomInt=
+    pi===2?Math.min((blend-0.4)/0.6,1)*0.8:
+    pi===3?0.8:
+    pi===4?Math.max(0.8-blend*0.8,0):0;
+  setAttr('bloom-light','intensity',bloomInt);
+}
+
+function onEnter(pi){
+  showPhase(PHASES[pi].name);
+  if(pi===2) setTimeout(()=>factEl.classList.add('show'),2200);
+  if(pi===3&&!questionShown){ questionShown=true; setTimeout(()=>qEl.classList.add('show'),1200); }
+  if(pi===4){ factEl.classList.remove('show'); }
+}
+
+// ── Main loop ─────────────────────────────────────────
+function tick(ts){
+  if(!startTime) startTime=ts;
+  const elapsed=ts-startTime;
+  const prog=Math.min(elapsed/TOTAL,1);
+  barEl.style.width=(prog*100)+'%';
+
+  let acc=0,pi=0,pe=0;
+  for(let i=0;i<PHASES.length;i++){
+    if(elapsed<acc+PHASES[i].dur){ pi=i; pe=elapsed-acc; break; }
+    acc+=PHASES[i].dur;
+    if(i===PHASES.length-1){ pi=i; pe=PHASES[i].dur; }
+  }
+  const blend=Math.min(pe/PHASES[pi].dur,1);
+
+  if(pi!==lastPhase){ onEnter(pi); lastPhase=pi; }
+  applyPhase(pi,blend);
+
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
 </script>
+
 </body>
 </html>
