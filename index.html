@@ -1,638 +1,471 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ночной Кактус</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Cinzel:wght@400;600&display=swap" rel="stylesheet"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AR Цветок Ночи</title>
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 <style>
-:root {
-  --day1:   #87ceeb;
-  --day2:   #ffd580;
-  --sunset1:#ff7043;
-  --sunset2:#ff8f00;
-  --night1: #020818;
-  --night2: #0a0525;
-  --dawn1:  #e07050;
-  --dawn2:  #3a1a3a;
-  --bloom:  #ff4fa3;
-  --bloom2: #c020a0;
-  --pollen: #ffe04a;
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-* { margin:0; padding:0; box-sizing:border-box; }
+  body { overflow: hidden; font-family: 'Georgia', serif; }
 
-html, body {
-  width:100%; height:100%;
-  overflow:hidden;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  background:#020818;
-}
+  /* ── Sky overlay ── */
+  #sky-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    transition: background 3s ease;
+    background: rgba(135, 180, 255, 0.18); /* day tint */
+  }
 
-/* ═══ CANVAS ═══════════════════════════════ */
-#scene {
-  position:fixed; inset:0;
-  width:100%; height:100%;
-}
+  /* ── Stars ── */
+  #stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 11;
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+    animation: twinkle 2s infinite alternate;
+  }
+  @keyframes twinkle {
+    from { opacity: 0.3; }
+    to   { opacity: 1; }
+  }
 
-/* ═══ PARTICLE LAYER ════════════════════════ */
-#particles {
-  position:fixed; inset:0;
-  pointer-events:none; z-index:5;
-}
+  /* ── Sun / Moon ── */
+  #celestial {
+    position: fixed;
+    top: 24px;
+    right: 36px;
+    z-index: 12;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffe066, #ffb300);
+    box-shadow: 0 0 32px 10px #ffda0099;
+    transition: background 3s ease, box-shadow 3s ease, top 3s ease, right 3s ease;
+  }
+  #celestial.moon {
+    background: radial-gradient(circle at 38% 38%, #e8e8ff, #b0b8d8);
+    box-shadow: 0 0 24px 6px #8899cc55;
+  }
 
-/* ═══ UI LAYER ══════════════════════════════ */
-#ui { position:fixed; inset:0; z-index:20; pointer-events:none; }
+  /* ── Phase label ── */
+  #phase-label {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 8px #000a;
+    opacity: 0;
+    transition: opacity 1s ease;
+    background: rgba(0,0,0,0.28);
+    padding: 4px 18px;
+    border-radius: 20px;
+    backdrop-filter: blur(6px);
+  }
 
-/* Phase name */
-#phase-name {
-  position:absolute;
-  top: 32px; left:50%; transform:translateX(-50%);
-  font-family:'Cinzel', serif;
-  font-size: clamp(11px,2.5vw,14px);
-  letter-spacing: 6px;
-  color: rgba(255,255,255,0.85);
-  text-transform:uppercase;
-  text-shadow: 0 0 20px rgba(255,200,100,0.5);
-  opacity:0;
-  transition: opacity 1.2s ease;
-  white-space:nowrap;
-}
+  /* ── Fact card ── */
+  #fact-card {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    z-index: 30;
+    background: rgba(10, 10, 30, 0.82);
+    border: 1px solid rgba(150, 180, 255, 0.35);
+    border-radius: 16px;
+    padding: 14px 22px;
+    max-width: 88vw;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    opacity: 0;
+    transition: opacity 1.2s ease, transform 1.2s ease;
+    pointer-events: none;
+  }
+  #fact-card.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  #fact-card .fact-icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  #fact-card .fact-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #8ab4ff;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  #fact-card .fact-text {
+    font-size: 15px;
+    color: #eef2ff;
+    line-height: 1.5;
+    font-style: italic;
+  }
 
-/* Fact */
-#fact {
-  position:absolute;
-  bottom: 90px; left:50%; transform:translateX(-50%);
-  width: min(480px, 88vw);
-  background: rgba(2,8,24,0.82);
-  border: 1px solid rgba(200,160,255,0.25);
-  border-radius: 20px;
-  padding: 20px 28px 18px;
-  text-align:center;
-  backdrop-filter:blur(14px);
-  box-shadow: 0 0 40px rgba(150,80,255,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
-  opacity:0;
-  transform:translateX(-50%) translateY(14px);
-  transition: opacity 1.4s ease, transform 1.4s ease;
-  pointer-events:none;
-}
-#fact.show { opacity:1; transform:translateX(-50%) translateY(0); }
-#fact .f-icon { font-size:26px; margin-bottom:8px; }
-#fact .f-label {
-  font-family:'Cinzel',serif;
-  font-size:9px; letter-spacing:4px;
-  color:#a080e0; text-transform:uppercase; margin-bottom:8px;
-}
-#fact .f-text {
-  font-size: clamp(14px,3.5vw,17px);
-  font-style:italic; color:#e8e0ff; line-height:1.6;
-}
+  /* ── Question modal ── */
+  #question-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,5,0.65);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+  #question-modal.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .q-box {
+    background: linear-gradient(145deg, #0b0f2a, #1a1040);
+    border: 1px solid rgba(160, 120, 255, 0.4);
+    border-radius: 24px;
+    padding: 36px 32px 28px;
+    max-width: 82vw;
+    text-align: center;
+    box-shadow: 0 8px 48px #6030ff33;
+    animation: floatIn 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes floatIn {
+    from { transform: translateY(40px) scale(0.92); opacity: 0; }
+    to   { transform: none; opacity: 1; }
+  }
+  .q-icon { font-size: 36px; margin-bottom: 12px; }
+  .q-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #a080ff;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .q-text {
+    font-size: 17px;
+    color: #e8eaff;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .q-close {
+    background: linear-gradient(135deg, #5020cc, #8040ff);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 10px 28px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    box-shadow: 0 4px 18px #6030cc55;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .q-close:hover { transform: scale(1.05); box-shadow: 0 6px 24px #6030cc99; }
 
-/* Question */
-#question-wrap {
-  position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center;
-  background: rgba(1,3,15,0.7);
-  backdrop-filter:blur(10px);
-  opacity:0; pointer-events:none;
-  transition:opacity 0.9s ease;
-}
-#question-wrap.show { opacity:1; pointer-events:auto; }
-#question-box {
-  width: min(460px,88vw);
-  background: linear-gradient(160deg,#07062a,#120830);
-  border:1px solid rgba(180,100,255,0.3);
-  border-radius:28px;
-  padding:44px 36px 34px;
-  text-align:center;
-  box-shadow: 0 12px 60px rgba(100,40,220,0.3), 0 0 0 1px rgba(255,255,255,0.04);
-  transform:translateY(30px) scale(0.96);
-  transition: transform 0.9s cubic-bezier(0.34,1.36,0.64,1), opacity 0.9s ease;
-  opacity:0;
-}
-#question-wrap.show #question-box { transform:none; opacity:1; }
-#question-box .q-glyph { font-size:48px; margin-bottom:16px; filter:drop-shadow(0 0 14px #ff80cc); }
-#question-box .q-label {
-  font-family:'Cinzel',serif;
-  font-size:9px; letter-spacing:5px;
-  color:#c080ff; text-transform:uppercase; margin-bottom:20px;
-}
-#question-box .q-text {
-  font-size: clamp(16px,4vw,20px);
-  color:#f0eaff; line-height:1.65; margin-bottom:30px;
-  font-style:italic;
-}
-#question-box button {
-  font-family:'Cinzel',serif;
-  font-size:12px; letter-spacing:2px;
-  background:linear-gradient(135deg,#6020bb,#c040ff);
-  color:#fff; border:none; border-radius:50px;
-  padding:12px 32px; cursor:pointer;
-  box-shadow:0 4px 24px rgba(180,60,255,0.45);
-  pointer-events:auto;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-#question-box button:hover { transform:scale(1.06); box-shadow:0 6px 32px rgba(180,60,255,0.65); }
+  /* ── Timeline bar ── */
+  #timeline {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 0%;
+    height: 3px;
+    background: linear-gradient(90deg, #ffe066, #ff8000, #6644ff, #4488ff, #ffe066);
+    background-size: 300% 100%;
+    animation: gradShift 20s linear infinite;
+    z-index: 40;
+    transition: width 0.5s linear;
+  }
+  @keyframes gradShift {
+    from { background-position: 0% 0; }
+    to   { background-position: 300% 0; }
+  }
 
-/* Progress bar */
-#progress {
-  position:absolute; bottom:0; left:0;
-  height:3px; width:0%;
-  background:linear-gradient(90deg,#ffe08a,#ff6040,#c040ff,#40a0ff,#ffe08a);
-  background-size:300% 100%;
-  animation:gradMove 12s linear infinite;
-  transition:width 0.3s linear;
-  box-shadow:0 0 10px rgba(200,120,255,0.6);
-}
-@keyframes gradMove { to{background-position:300% 0} }
+  /* ── Flower 2D overlay (bloom/wither) ── */
+  #flower-overlay {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    font-size: 64px;
+    opacity: 0;
+    filter: drop-shadow(0 0 18px #ff88aacc);
+    transition: opacity 1.5s ease, font-size 1s ease, filter 1.5s ease;
+    pointer-events: none;
+    text-align: center;
+  }
+  #flower-overlay.bloomed {
+    opacity: 1;
+    font-size: 80px;
+    filter: drop-shadow(0 0 28px #ff44aaff);
+  }
+  #flower-overlay.withered {
+    opacity: 0.4;
+    font-size: 52px;
+    filter: drop-shadow(0 0 6px #996644aa) grayscale(0.6);
+  }
+  #flower-overlay.gone { opacity: 0; }
 </style>
 </head>
 <body>
 
-<canvas id="scene"></canvas>
-<canvas id="particles"></canvas>
+<!-- Sky + Celestial body -->
+<div id="sky-overlay"></div>
+<div id="stars"></div>
+<div id="celestial"></div>
 
-<div id="ui">
-  <div id="phase-name"></div>
+<!-- Phase label -->
+<div id="phase-label">День</div>
 
-  <div id="fact">
-    <div class="f-icon">🌙</div>
-    <div class="f-label">Факт о кактусе</div>
-    <div class="f-text">Цветёт только ночью — цветок живёт один день</div>
-  </div>
+<!-- Flower emoji overlay (shows state) -->
+<div id="flower-overlay">🌵</div>
 
-  <div id="question-wrap">
-    <div id="question-box">
-      <div class="q-glyph">🌺</div>
-      <div class="q-label">Вопрос для размышления</div>
-      <div class="q-text">Почему растению выгодно цвести ночью?</div>
-      <button onclick="closeQ()">Задумаюсь об этом ✨</button>
-    </div>
-  </div>
-
-  <div id="progress"></div>
+<!-- Fact card -->
+<div id="fact-card">
+  <div class="fact-icon">🌙</div>
+  <div class="fact-label">Факт о кактусе</div>
+  <div class="fact-text">Цветёт только ночью — цветок живёт один день</div>
 </div>
 
+<!-- Question modal -->
+<div id="question-modal">
+  <div class="q-box">
+    <div class="q-icon">🤔</div>
+    <div class="q-label">Вопрос для размышления</div>
+    <div class="q-text">Почему растению выгодно цвести ночью?</div>
+    <button class="q-close" onclick="closeQuestion()">Подумаю над этим ✨</button>
+  </div>
+</div>
+
+<!-- Timeline progress -->
+<div id="timeline"></div>
+
+<!-- AR Scene -->
+<a-scene
+  embedded
+  arjs="sourceType: webcam; debugUIEnabled: false;"
+  vr-mode-ui="enabled: false"
+>
+  <a-marker preset="hiro">
+    <a-entity id="root-entity" rotation="-90 0 0">
+      <a-entity
+        id="cactus-model"
+        gltf-model="Cactus_037e_by_get3dmodels.glb"
+        position="0 0 0"
+        scale="1 1 1"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
+      ></a-entity>
+
+      <!-- Petals (bloom effect) - simple torus rings as flower petals -->
+      <a-entity id="bloom-group" visible="false">
+        <a-torus id="petal1" position="0 0.6 0" rotation="0 0 0"
+          radius="0.18" radius-tubular="0.05"
+          color="#ff66aa" opacity="0.9"
+          animation__rot="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"
+          animation__scale="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; dur: 2000; easing: easeOutElastic">
+        </a-torus>
+        <a-torus id="petal2" position="0 0.6 0" rotation="0 45 90"
+          radius="0.22" radius-tubular="0.04"
+          color="#ff44cc" opacity="0.7"
+          animation__rot="property: rotation; to: 360 45 90; loop: true; dur: 5000; easing: linear"
+          animation__scale="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; dur: 2000; easing: easeOutElastic">
+        </a-torus>
+        <a-sphere position="0 0.6 0" radius="0.09" color="#ffdd00"
+          animation__scale="property: scale; from: 0 0 0; to: 1 1 1; dur: 1500; easing: easeOutElastic"
+          animation__glow="property: color; from: #ffdd00; to: #ffffff; dir: alternate; loop: true; dur: 800">
+        </a-sphere>
+        <!-- Glow halo -->
+        <a-sphere position="0 0.6 0" radius="0.3" color="#ff88cc"
+          opacity="0.18" side="back"
+          animation__pulse="property: scale; from: 0.8 0.8 0.8; to: 1.2 1.2 1.2; dir: alternate; loop: true; dur: 1200">
+        </a-sphere>
+      </a-entity>
+
+      <!-- Night light (point light) -->
+      <a-light id="night-light" type="point" color="#8844ff" intensity="0" position="0 1 0"
+        animation__int="property: intensity; from: 0; to: 1.2; dur: 3000">
+      </a-light>
+    </a-entity>
+  </a-marker>
+
+  <a-entity camera></a-entity>
+</a-scene>
+
 <script>
-// ═══════════════════════════════════════════════════════════
-//  SCENE CANVAS
-// ═══════════════════════════════════════════════════════════
-const canvas = document.getElementById('scene');
-const ctx = canvas.getContext('2d');
-const pCanvas = document.getElementById('particles');
-const pCtx = pCanvas.getContext('2d');
-
-function resize() {
-  canvas.width  = pCanvas.width  = window.innerWidth;
-  canvas.height = pCanvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener('resize', resize);
-
-const W = ()=>canvas.width, H = ()=>canvas.height;
-
-// ── Stars ──────────────────────────────────────────────────
-const STARS = Array.from({length:200},()=>({
-  x: Math.random(),
-  y: Math.random()*0.75,
-  r: Math.random()*1.4+0.3,
-  speed: Math.random()*0.6+0.4,
-  phase: Math.random()*Math.PI*2,
-}));
-
-function drawStars(alpha) {
-  if (alpha<=0) return;
-  STARS.forEach(s=>{
-    const tw = 0.6+0.4*Math.sin(Date.now()*0.001*s.speed+s.phase);
-    ctx.save();
-    ctx.globalAlpha = alpha*tw;
-    ctx.beginPath();
-    ctx.arc(s.x*W(), s.y*H(), s.r, 0, Math.PI*2);
-    ctx.fillStyle='#fff';
-    ctx.fill();
-    // glow
-    const g=ctx.createRadialGradient(s.x*W(),s.y*H(),0,s.x*W(),s.y*H(),s.r*5);
-    g.addColorStop(0,'rgba(200,200,255,0.5)');
-    g.addColorStop(1,'transparent');
-    ctx.globalAlpha=alpha*tw*0.4;
-    ctx.beginPath();
-    ctx.arc(s.x*W(),s.y*H(),s.r*5,0,Math.PI*2);
-    ctx.fillStyle=g; ctx.fill();
-    ctx.restore();
-  });
+// ── Generate stars ──────────────────────────────────────────────
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 120; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2.5 + 0.5;
+  s.style.cssText = `
+    width:${size}px; height:${size}px;
+    top:${Math.random()*80}%;
+    left:${Math.random()*100}%;
+    animation-delay:${Math.random()*3}s;
+    animation-duration:${1.5 + Math.random()*2}s;
+  `;
+  starsEl.appendChild(s);
 }
 
-// ── Moon ──────────────────────────────────────────────────
-function drawMoon(alpha, t) {
-  if (alpha<=0) return;
-  const mx=W()*0.82, my=H()*0.14+Math.sin(t*0.0003)*6;
-  const r=W()*0.045;
-  ctx.save();
-  ctx.globalAlpha=alpha;
-  // outer glow
-  let g=ctx.createRadialGradient(mx,my,r*0.5,mx,my,r*3.5);
-  g.addColorStop(0,'rgba(180,190,255,0.25)');
-  g.addColorStop(1,'transparent');
-  ctx.beginPath(); ctx.arc(mx,my,r*3.5,0,Math.PI*2);
-  ctx.fillStyle=g; ctx.fill();
-  // moon body
-  g=ctx.createRadialGradient(mx-r*0.2,my-r*0.2,r*0.1,mx,my,r);
-  g.addColorStop(0,'#f0f4ff');
-  g.addColorStop(0.6,'#c8d0f0');
-  g.addColorStop(1,'#8090c8');
-  ctx.beginPath(); ctx.arc(mx,my,r,0,Math.PI*2);
-  ctx.fillStyle=g; ctx.fill();
-  // crescent shadow
-  ctx.globalCompositeOperation='destination-out';
-  ctx.beginPath(); ctx.arc(mx+r*0.35,my-r*0.1,r*0.88,0,Math.PI*2);
-  ctx.fillStyle='rgba(0,0,0,0.9)'; ctx.fill();
-  ctx.restore();
-}
-
-// ── Sun ──────────────────────────────────────────────────
-function drawSun(alpha, t, color1='#ffe060', color2='#ff9900', glow='#ffcc0044') {
-  if (alpha<=0) return;
-  const sx=W()*0.15, sy=H()*0.13+Math.sin(t*0.0004)*5;
-  const r=W()*0.05;
-  ctx.save();
-  ctx.globalAlpha=alpha;
-  // rays
-  for(let i=0;i<12;i++){
-    const a=i/12*Math.PI*2+t*0.0003;
-    const len=r*(1.4+0.2*Math.sin(t*0.002+i));
-    ctx.save();
-    ctx.globalAlpha=alpha*0.25;
-    ctx.strokeStyle='#ffe080';
-    ctx.lineWidth=2;
-    ctx.beginPath();
-    ctx.moveTo(sx+Math.cos(a)*r*1.1,sy+Math.sin(a)*r*1.1);
-    ctx.lineTo(sx+Math.cos(a)*(r+len),sy+Math.sin(a)*(r+len));
-    ctx.stroke();
-    ctx.restore();
-  }
-  // glow
-  let g=ctx.createRadialGradient(sx,sy,0,sx,sy,r*4);
-  g.addColorStop(0,glow); g.addColorStop(1,'transparent');
-  ctx.beginPath(); ctx.arc(sx,sy,r*4,0,Math.PI*2);
-  ctx.fillStyle=g; ctx.fill();
-  // body
-  g=ctx.createRadialGradient(sx-r*0.2,sy-r*0.2,r*0.1,sx,sy,r);
-  g.addColorStop(0,'#fff5c0');
-  g.addColorStop(0.5,color1);
-  g.addColorStop(1,color2);
-  ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2);
-  ctx.fillStyle=g; ctx.fill();
-  ctx.restore();
-}
-
-// ── Sky gradient ──────────────────────────────────────────
-function lerpColor(a,b,t){
-  const ah=a.replace('#',''),bh=b.replace('#','');
-  const ar=parseInt(ah.slice(0,2),16),ag=parseInt(ah.slice(2,4),16),ab=parseInt(ah.slice(4,6),16);
-  const br=parseInt(bh.slice(0,2),16),bg=parseInt(bh.slice(2,4),16),bb=parseInt(bh.slice(4,6),16);
-  const r=Math.round(ar+(br-ar)*t).toString(16).padStart(2,'0');
-  const g=Math.round(ag+(bg-ag)*t).toString(16).padStart(2,'0');
-  const bl=Math.round(ab+(bb-ab)*t).toString(16).padStart(2,'0');
-  return '#'+r+g+bl;
-}
-
-const SKY_PALETTES = {
-  day:    {top:'#2ea8e8',bot:'#f0d080'},
-  sunset: {top:'#c0402a',bot:'#ff9040'},
-  night:  {top:'#020818',bot:'#0d0530'},
-  dawn:   {top:'#5a1a2a',bot:'#e06840'},
-  newday: {top:'#4cc0f8',bot:'#fce8a0'},
-};
-
-function drawSky(phase, blend, t) {
-  const palKeys=['day','sunset','night','night','dawn','newday'];
-  const pal = SKY_PALETTES[palKeys[phase]];
-  const palNext = SKY_PALETTES[palKeys[Math.min(phase+1,5)]];
-  const top = lerpColor(pal.top, palNext.top, blend);
-  const bot = lerpColor(pal.bot, palNext.bot, blend);
-  const g=ctx.createLinearGradient(0,0,0,H()*0.72);
-  g.addColorStop(0,top); g.addColorStop(1,bot);
-  ctx.fillStyle=g; ctx.fillRect(0,0,W(),H()*0.72);
-}
-
-// ── Ground ────────────────────────────────────────────────
-function drawGround(phase, blend, t) {
-  const nightness = (phase>=2&&phase<=4) ? 1 : (phase===1?blend:0);
-  const gc1=lerpColor('#c8a850','#1a1a3a',nightness);
-  const gc2=lerpColor('#a08040','#080820',nightness);
-  const gy=H()*0.72;
-  const g=ctx.createLinearGradient(0,gy,0,H());
-  g.addColorStop(0,gc1); g.addColorStop(1,gc2);
-  ctx.fillStyle=g; ctx.fillRect(0,gy,W(),H()-gy);
-
-  // subtle ground texture lines
-  ctx.save(); ctx.globalAlpha=0.06;
-  for(let i=0;i<6;i++){
-    ctx.beginPath();
-    ctx.moveTo(0,gy+i*((H()-gy)/6));
-    ctx.bezierCurveTo(W()*0.3,gy+i*((H()-gy)/6)+6,W()*0.7,gy+i*((H()-gy)/6)-4,W(),gy+i*((H()-gy)/6)+3);
-    ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.stroke();
-  }
-  ctx.restore();
-
-  // horizon glow at sunset/dawn
-  if(phase===1||phase===4){
-    const hg=ctx.createLinearGradient(0,gy-20,0,gy+40);
-    hg.addColorStop(0,'transparent');
-    hg.addColorStop(0.5,`rgba(255,120,40,${0.4*blend})`);
-    hg.addColorStop(1,'transparent');
-    ctx.fillStyle=hg; ctx.fillRect(0,gy-20,W(),60);
-  }
-}
-
-// ── CACTUS ────────────────────────────────────────────────
-function drawCactus(visible, t, bloomPhase) {
-  if (!visible) return;
-  const cx=W()*0.5, cy=H()*0.72;
-  const h=H()*0.28;
-
-  ctx.save();
-
-  // shadow
-  ctx.globalAlpha=0.18;
-  ctx.beginPath();
-  ctx.ellipse(cx+6,cy-2,h*0.1,h*0.04,0,0,Math.PI*2);
-  ctx.fillStyle='#000'; ctx.fill();
-  ctx.globalAlpha=1;
-
-  // glow aura (night bloom)
-  if (bloomPhase>0) {
-    const glow=ctx.createRadialGradient(cx,cy-h*0.7,0,cx,cy-h*0.7,h*0.6);
-    glow.addColorStop(0,`rgba(255,80,180,${bloomPhase*0.35})`);
-    glow.addColorStop(1,'transparent');
-    ctx.beginPath(); ctx.arc(cx,cy-h*0.7,h*0.6,0,Math.PI*2);
-    ctx.fillStyle=glow; ctx.fill();
-  }
-
-  // trunk
-  const tw=h*0.115;
-  const cactusGreen1='#3a8a30';
-  const cactusGreen2='#1e5018';
-  const trunkG=ctx.createLinearGradient(cx-tw,0,cx+tw,0);
-  trunkG.addColorStop(0,cactusGreen2);
-  trunkG.addColorStop(0.3,cactusGreen1);
-  trunkG.addColorStop(0.7,cactusGreen1);
-  trunkG.addColorStop(1,cactusGreen2);
-
-  ctx.beginPath();
-  ctx.moveTo(cx-tw,cy);
-  ctx.bezierCurveTo(cx-tw,cy-h*0.4,cx-tw*0.9,cy-h*0.85,cx,cy-h);
-  ctx.bezierCurveTo(cx+tw*0.9,cy-h*0.85,cx+tw,cy-h*0.4,cx+tw,cy);
-  ctx.fillStyle=trunkG; ctx.fill();
-
-  // trunk rib lines
-  ctx.save(); ctx.globalAlpha=0.18;
-  for(let i=1;i<=5;i++){
-    const yy=cy-h*0.12*i;
-    ctx.beginPath();
-    ctx.moveTo(cx-tw*0.85,yy);
-    ctx.bezierCurveTo(cx,yy+4,cx,yy+4,cx+tw*0.85,yy);
-    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
-  }
-  ctx.restore();
-
-  // left arm
-  const armLx=cx-tw, armLy=cy-h*0.52;
-  const armW=tw*0.8;
-  ctx.beginPath();
-  ctx.moveTo(armLx,armLy+tw*0.5);
-  ctx.bezierCurveTo(armLx-h*0.12,armLy,armLx-h*0.22,armLy-h*0.12,armLx-h*0.18,armLy-h*0.28);
-  ctx.bezierCurveTo(armLx-h*0.14,armLy-h*0.4,armLx-h*0.02,armLy-h*0.3,armLx-armW*0.1,armLy-h*0.26);
-  ctx.bezierCurveTo(armLx+armW*0.6,armLy-h*0.28,armLx+armW*0.5,armLy+tw*0.2,armLx,armLy+tw*0.5);
-  ctx.fillStyle=trunkG; ctx.fill();
-
-  // right arm
-  const armRx=cx+tw, armRy=cy-h*0.4;
-  ctx.beginPath();
-  ctx.moveTo(armRx,armRy+tw*0.5);
-  ctx.bezierCurveTo(armRx+h*0.14,armRy+tw*0.2,armRx+h*0.26,armRy-h*0.1,armRx+h*0.2,armRy-h*0.24);
-  ctx.bezierCurveTo(armRx+h*0.14,armRy-h*0.36,armRx+h*0.02,armRy-h*0.26,armRx+armW*0.1,armRy-h*0.22);
-  ctx.bezierCurveTo(armRx-armW*0.5,armRy-h*0.24,armRx-armW*0.45,armRy+tw*0.1,armRx,armRy+tw*0.5);
-  ctx.fillStyle=trunkG; ctx.fill();
-
-  // spines
-  function drawSpines(basex,basey,count,spread){
-    for(let i=0;i<count;i++){
-      const ang=-Math.PI*0.5+( (i/(count-1))-0.5)*spread;
-      const len=h*0.025+Math.random()*h*0.015;
-      ctx.save(); ctx.globalAlpha=0.7;
-      ctx.beginPath();
-      ctx.moveTo(basex,basey);
-      ctx.lineTo(basex+Math.cos(ang)*len, basey+Math.sin(ang)*len);
-      ctx.strokeStyle='#e8d8a0'; ctx.lineWidth=1.2; ctx.stroke();
-      ctx.restore();
-    }
-  }
-  for(let i=0;i<6;i++){
-    const yy=cy-h*0.08-i*(h*0.14);
-    drawSpines(cx-tw,yy,4,1.4);
-    drawSpines(cx+tw,yy,4,1.4);
-  }
-
-  ctx.restore();
-
-  // ── FLOWER on top ──────────────────────────────────────
-  if (bloomPhase>0) {
-    drawFlower(cx, cy-h, bloomPhase, t);
-  }
-}
-
-function drawFlower(fx, fy, phase, t) {
-  const pr=H()*0.07*phase;  // petal radius
-  const np=8;
-  ctx.save();
-  // petals
-  for(let i=0;i<np;i++){
-    const ang=i/np*Math.PI*2+t*0.0004;
-    const px=fx+Math.cos(ang)*pr*0.6;
-    const py=fy+Math.sin(ang)*pr*0.6;
-    const g=ctx.createRadialGradient(px,py,0,px,py,pr*0.7);
-    g.addColorStop(0,'#ff80c8');
-    g.addColorStop(0.5,'#e0208a');
-    g.addColorStop(1,'rgba(180,0,120,0)');
-    ctx.beginPath();
-    ctx.ellipse(px,py,pr*0.7,pr*0.4,ang,0,Math.PI*2);
-    ctx.fillStyle=g;
-    ctx.globalAlpha=0.88*phase;
-    ctx.fill();
-  }
-  // centre glow
-  const cg=ctx.createRadialGradient(fx,fy,0,fx,fy,pr*0.5);
-  cg.addColorStop(0,'#fff7a0');
-  cg.addColorStop(0.4,'#ffe040');
-  cg.addColorStop(1,'rgba(255,200,0,0)');
-  ctx.globalAlpha=phase;
-  ctx.beginPath(); ctx.arc(fx,fy,pr*0.5,0,Math.PI*2);
-  ctx.fillStyle=cg; ctx.fill();
-  // sparkle dots
-  for(let i=0;i<6;i++){
-    const sa=i/6*Math.PI*2+t*0.001;
-    const sd=pr*0.9;
-    ctx.globalAlpha=phase*(0.5+0.5*Math.sin(t*0.003+i));
-    ctx.beginPath();
-    ctx.arc(fx+Math.cos(sa)*sd,fy+Math.sin(sa)*sd,2.5,0,Math.PI*2);
-    ctx.fillStyle='#ffe080'; ctx.fill();
-  }
-  ctx.restore();
-}
-
-// ── FIREFLIES / POLLEN PARTICLES ─────────────────────────
-class Particle {
-  constructor(type) {
-    this.type=type; this.reset();
-  }
-  reset(){
-    this.x=Math.random()*W();
-    this.y=Math.random()*H();
-    this.vx=(Math.random()-0.5)*0.4;
-    this.vy=-Math.random()*0.5-0.1;
-    this.life=0; this.maxLife=180+Math.random()*120;
-    this.r=Math.random()*3+1;
-    this.hue= this.type==='firefly' ? 100+Math.random()*40 : 40+Math.random()*30;
-  }
-  update(){
-    this.x+=this.vx+Math.sin(Date.now()*0.001+this.y)*0.3;
-    this.y+=this.vy;
-    this.life++;
-    if(this.life>this.maxLife||this.y<0) this.reset();
-  }
-  draw(ctx,alpha){
-    const t2=this.life/this.maxLife;
-    const a=Math.sin(t2*Math.PI)*alpha;
-    if(this.type==='firefly'){
-      const glow=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.r*6);
-      glow.addColorStop(0,`hsla(${this.hue},100%,80%,${a*0.9})`);
-      glow.addColorStop(1,'transparent');
-      ctx.beginPath(); ctx.arc(this.x,this.y,this.r*6,0,Math.PI*2);
-      ctx.fillStyle=glow; ctx.fill();
-    } else {
-      ctx.beginPath(); ctx.arc(this.x,this.y,this.r*0.7,0,Math.PI*2);
-      ctx.fillStyle=`hsla(${this.hue},100%,75%,${a})`;
-      ctx.fill();
-    }
-  }
-}
-
-const fireflies = Array.from({length:28},()=>{const p=new Particle('firefly');p.life=Math.random()*p.maxLife;return p;});
-const pollens   = Array.from({length:18},()=>{const p=new Particle('pollen'); p.life=Math.random()*p.maxLife;return p;});
-
-// ── SCENE STATE MACHINE ───────────────────────────────────
-// Phases with durations (ms)
+// ── State machine ────────────────────────────────────────────────
+// Phases (each duration in ms):
+// 0 - DAY        (5s)  sunny, cactus visible, no flower
+// 1 - SUNSET     (4s)  transition
+// 2 - NIGHT      (5s)  dark, flower blooms, fact appears
+// 3 - QUESTION   (3s)  question appears
+// 4 - DAWN       (4s)  flower withers
+// 5 - NEW DAY    (4s)  bright, cactus gone / empty
 const PHASES = [
-  {id:'day',    label:'🌞  День',       dur:6000},
-  {id:'sunset', label:'🌅  Закат',      dur:5000},
-  {id:'night',  label:'🌙  Ночь',       dur:6000},
-  {id:'bloom',  label:'🌺  Цветок расцвёл', dur:5000},
-  {id:'dawn',   label:'🌄  Рассвет',    dur:5000},
-  {id:'newday', label:'✨  Новый день', dur:5000},
+  { name: 'День',       dur: 5000 },
+  { name: 'Закат',      dur: 4000 },
+  { name: 'Ночь',       dur: 5000 },
+  { name: 'Вопрос',     dur: 5000 },
+  { name: 'Рассвет',    dur: 4000 },
+  { name: 'Новый день', dur: 4000 },
 ];
-const TOTAL=PHASES.reduce((a,p)=>a+p.dur,0);
+const TOTAL = PHASES.reduce((a,p)=>a+p.dur,0);
 
-let startTime=null, lastPhase=-1, questionShown=false;
+const skyEl      = document.getElementById('sky-overlay');
+const starsDiv   = document.getElementById('stars');
+const celestial  = document.getElementById('celestial');
+const phaseLabel = document.getElementById('phase-label');
+const factCard   = document.getElementById('fact-card');
+const qModal     = document.getElementById('question-modal');
+const timeline   = document.getElementById('timeline');
+const flowerOv   = document.getElementById('flower-overlay');
+const bloomGrp   = document.getElementById('bloom-group');
+const nightLight = document.getElementById('night-light');
 
-const phaseNameEl = document.getElementById('phase-name');
-const factEl      = document.getElementById('fact');
-const qWrap       = document.getElementById('question-wrap');
-const progressEl  = document.getElementById('progress');
+let currentPhase = -1;
+let startTime = Date.now();
+let questionShown = false;
 
-function showPhaseName(label){
-  phaseNameEl.textContent=label;
-  phaseNameEl.style.opacity='1';
-  setTimeout(()=>phaseNameEl.style.opacity='0',2200);
+function showPhaseLabel(text, dur=2000) {
+  phaseLabel.textContent = text;
+  phaseLabel.style.opacity = '1';
+  setTimeout(()=>{ phaseLabel.style.opacity='0'; }, dur);
 }
 
-function closeQ(){ qWrap.classList.remove('show'); }
+function applyPhase(idx) {
+  if (idx === currentPhase) return;
+  currentPhase = idx;
 
-function onPhaseEnter(pi){
-  showPhaseName(PHASES[pi].label);
-  if(pi===2){  // night: show fact
-    setTimeout(()=>factEl.classList.add('show'),2000);
-  }
-  if(pi===3&&!questionShown){ // bloom: show question
-    questionShown=true;
-    setTimeout(()=>qWrap.classList.add('show'),1500);
-  }
-  if(pi===4){ // dawn: hide fact
-    factEl.classList.remove('show');
+  switch(idx) {
+    case 0: // DAY
+      skyEl.style.background = 'rgba(135,200,255,0.22)';
+      starsDiv.style.opacity = '0';
+      celestial.className = '';
+      celestial.style.background = 'radial-gradient(circle, #ffe066, #ffb300)';
+      celestial.style.boxShadow = '0 0 32px 10px #ffda0099';
+      celestial.style.top = '24px'; celestial.style.right = '36px';
+      flowerOv.className = '';      // reset
+      flowerOv.textContent = '🌵';
+      flowerOv.style.opacity = '0';
+      bloomGrp && (bloomGrp.setAttribute('visible','false'));
+      if(nightLight) nightLight.setAttribute('intensity','0');
+      factCard.classList.remove('visible');
+      showPhaseLabel('🌞 День');
+      break;
+
+    case 1: // SUNSET
+      skyEl.style.background = 'rgba(255,120,40,0.28)';
+      celestial.style.background = 'radial-gradient(circle, #ff8844, #ff4400)';
+      celestial.style.boxShadow = '0 0 40px 14px #ff660055';
+      celestial.style.top = '60px';
+      showPhaseLabel('🌅 Закат');
+      break;
+
+    case 2: // NIGHT - flower blooms
+      skyEl.style.background = 'rgba(5,5,30,0.72)';
+      starsDiv.style.opacity = '1';
+      celestial.className = 'moon';
+      celestial.style.top = '24px'; celestial.style.right = '36px';
+      flowerOv.textContent = '🌺';
+      setTimeout(()=>{ flowerOv.className = 'bloomed'; }, 1000);
+      bloomGrp && (bloomGrp.setAttribute('visible','true'));
+      if(nightLight) nightLight.setAttribute('intensity','1.2');
+      setTimeout(()=>{ factCard.classList.add('visible'); }, 2000);
+      showPhaseLabel('🌙 Ночь — цветок расцвёл!');
+      break;
+
+    case 3: // QUESTION
+      if (!questionShown) {
+        questionShown = true;
+        qModal.classList.add('visible');
+      }
+      break;
+
+    case 4: // DAWN - flower withers
+      skyEl.style.background = 'rgba(200,100,80,0.3)';
+      starsDiv.style.opacity = '0';
+      celestial.className = '';
+      celestial.style.background = 'radial-gradient(circle, #ffcc88, #ff8833)';
+      celestial.style.boxShadow = '0 0 28px 8px #ffaa4455';
+      flowerOv.className = 'withered';
+      factCard.classList.remove('visible');
+      bloomGrp && (bloomGrp.setAttribute('visible','false'));
+      showPhaseLabel('🌄 Рассвет — цветок увядает');
+      break;
+
+    case 5: // NEW DAY - cactus gone
+      skyEl.style.background = 'rgba(135,200,255,0.22)';
+      celestial.className = '';
+      celestial.style.background = 'radial-gradient(circle, #ffe066, #ffb300)';
+      celestial.style.boxShadow = '0 0 32px 10px #ffda0099';
+      flowerOv.className = 'gone';
+      // Hide cactus model from AR
+      const mdl = document.getElementById('cactus-model');
+      if (mdl) mdl.setAttribute('visible','false');
+      showPhaseLabel('🌞 Новый день — цветка нет');
+      break;
   }
 }
 
-// ── RENDER LOOP ───────────────────────────────────────────
-function render(ts){
-  if(!startTime) startTime=ts;
-  const elapsed=ts-startTime;
-  const progress=Math.min(elapsed/TOTAL,1);
-  progressEl.style.width=(progress*100)+'%';
-
-  // find current phase
-  let acc=0, pi=0, pElapsed=0;
-  for(let i=0;i<PHASES.length;i++){
-    if(elapsed<acc+PHASES[i].dur){pi=i;pElapsed=elapsed-acc;break;}
-    acc+=PHASES[i].dur;
-    if(i===PHASES.length-1){pi=PHASES.length-1;pElapsed=PHASES[i].dur;}
-  }
-  const blend=Math.min(pElapsed/PHASES[pi].dur,1);
-
-  if(pi!==lastPhase){ onPhaseEnter(pi); lastPhase=pi; }
-
-  // clear
-  ctx.clearRect(0,0,W(),H());
-  pCtx.clearRect(0,0,W(),H());
-
-  // stars visibility
-  const starAlpha=
-    pi===1 ? blend*0.7 :
-    pi===2 ? 0.7+blend*0.3 :
-    pi===3 ? 1 :
-    pi===4 ? 1-blend*0.6 :
-    0;
-
-  // bloom phase (0=none,1=full)
-  const bloomPhase=
-    pi===2 ? Math.min(pElapsed/2000,1) :
-    pi===3 ? 1 :
-    pi===4 ? Math.max(1-pElapsed/3000,0) :
-    0;
-
-  // cactus visibility
-  const cactusVisible = pi!==5;
-
-  drawSky(pi, blend, ts);
-  drawStars(starAlpha);
-  drawGround(pi, blend, ts);
-
-  if(pi<2||pi===5){
-    const sunAlpha=pi===1?1-blend:pi===0?1:pi===5?1:0;
-    const sAlpha2=pi===4?blend:0;
-    drawSun(sunAlpha+sAlpha2, ts,
-      pi===1?lerpColor('#ffe060','#ff4400',blend):'#ffe060',
-      pi===1?lerpColor('#ff9900','#ff2200',blend):'#ff9900',
-      pi===1?`rgba(255,${Math.round(150-100*blend)},0,0.3)`:'#ffcc0044');
-  }
-  drawMoon(starAlpha, ts);
-  drawCactus(cactusVisible, ts, bloomPhase);
-
-  // particles
-  const ffAlpha = starAlpha;
-  const polAlpha = bloomPhase;
-  fireflies.forEach(p=>{ p.update(); p.draw(pCtx,ffAlpha); });
-  pollens.forEach(p=>{
-    p.update();
-    // keep pollen near flower
-    if(p.y<H()*0.3) p.reset();
-    p.x = W()*0.5+(p.x-W()*0.5)*0.98;
-    p.draw(pCtx,polAlpha*0.8);
-  });
-
-  requestAnimationFrame(render);
+function closeQuestion() {
+  qModal.classList.remove('visible');
 }
 
-requestAnimationFrame(render);
+// ── Animation loop ──────────────────────────────────────────────
+function tick() {
+  const elapsed = Date.now() - startTime;
+  const progress = Math.min(elapsed / TOTAL, 1);
+  timeline.style.width = (progress * 100) + '%';
+
+  let acc = 0;
+  for (let i = 0; i < PHASES.length; i++) {
+    acc += PHASES[i].dur;
+    if (elapsed < acc) {
+      applyPhase(i);
+      break;
+    }
+  }
+
+  if (progress < 1) {
+    requestAnimationFrame(tick);
+  }
+}
+
+// Start after a tiny delay so scene loads
+setTimeout(()=>{ startTime = Date.now(); tick(); }, 800);
 </script>
 </body>
 </html>
