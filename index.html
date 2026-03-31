@@ -3,65 +3,88 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <title>AR Динозавры</title>
 
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
 <style>
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+/* Карточка */
 .panel {
   position: absolute;
   bottom: 20px;
-  left: 10px;
-  right: 10px;
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
+  left: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #ffffff, #f3f7ff);
+  padding: 18px;
+  border-radius: 16px;
   display: none;
-  font-family: sans-serif;
-  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: fadeIn 0.4s ease;
 }
 
+/* Заголовок */
+.panel h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+/* Кнопки */
 button {
-  display: block;
-  margin: 5px 0;
+  margin-top: 8px;
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: none;
-  border-radius: 6px;
-  background: #4CAF50;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4CAF50, #66bb6a);
   color: white;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Результат */
+#result {
+  margin-top: 12px;
+  font-weight: bold;
   font-size: 16px;
 }
 
-button:hover {
-  background: #45a049;
-}
-
-#result {
-  margin-top: 10px;
-  font-weight: bold;
+/* Анимация */
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(20px);}
+  to {opacity: 1; transform: translateY(0);}
 }
 </style>
 </head>
 
-<body style="margin:0; overflow:hidden;">
+<body>
 
 <!-- ФАКТ -->
 <div id="fact" class="panel">
-  <h3>Интересный факт 🌿</h3>
+  <h3>🌿 Интересный факт</h3>
   <p>Гинкго видело динозавров. Ему может быть до 3000 лет!</p>
   <button onclick="showQuiz()">Дальше ➡️</button>
 </div>
 
 <!-- ВОПРОС -->
 <div id="quiz" class="panel">
-  <h3>Что ещё могло жить во времена динозавров?</h3>
+  <h3>🦖 Что ещё жило во времена динозавров?</h3>
 
-  <button onclick="checkAnswer(1)">Крокодилы ✅</button>
-  <button onclick="checkAnswer(2)">Кошки</button>
-  <button onclick="checkAnswer(3)">Собаки</button>
-  <button onclick="checkAnswer(4)">Коровы</button>
+  <button onclick="checkAnswer(1)">🐊 Крокодилы</button>
+  <button onclick="checkAnswer(2)">🐱 Кошки</button>
+  <button onclick="checkAnswer(3)">🐶 Собаки</button>
+  <button onclick="checkAnswer(4)">🐄 Коровы</button>
 
   <div id="result"></div>
 </div>
@@ -74,10 +97,11 @@ button:hover {
 
 <a-marker preset="hiro" id="marker">
 
+  <!-- 📱 ВАЖНО: адаптация под вертикальный экран -->
   <a-video
     src="#video"
-    width="2"
-    height="1"
+    width="1.6"
+    height="0.9"
     position="0 0 0"
     rotation="-90 0 0"
   ></a-video>
@@ -95,7 +119,7 @@ const fact = document.getElementById("fact");
 const quiz = document.getElementById("quiz");
 const result = document.getElementById("result");
 
-// Видео старт / стоп
+// Видео
 marker.addEventListener("markerFound", () => {
   video.play();
 });
@@ -109,19 +133,19 @@ video.addEventListener("ended", () => {
   fact.style.display = "block";
 });
 
-// Показать вопрос
+// Факт → вопрос
 function showQuiz() {
   fact.style.display = "none";
   quiz.style.display = "block";
 }
 
-// Проверка ответа
+// Ответ
 function checkAnswer(num) {
   if (num === 1) {
-    result.innerHTML = "🎉 Правильно! Крокодилы жили ещё во времена динозавров.";
+    result.innerHTML = "🎉 Правильно! Крокодилы жили вместе с динозаврами.";
     result.style.color = "green";
   } else {
-    result.innerHTML = "❌ Не совсем. Попробуй ещё!";
+    result.innerHTML = "❌ Почти! Попробуй ещё 😊";
     result.style.color = "red";
   }
 }
