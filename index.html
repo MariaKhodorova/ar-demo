@@ -3,469 +3,95 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AR Цветок Ночи</title>
+<title>AR Цветок</title>
+
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+#quiz {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  right: 10px;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  display: none;
+  font-family: sans-serif;
+}
 
-  body { overflow: hidden; font-family: 'Georgia', serif; }
-
-  /* ── Sky overlay ── */
-  #sky-overlay {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 10;
-    transition: background 3s ease;
-    background: rgba(135, 180, 255, 0.18); /* day tint */
-  }
-
-  /* ── Stars ── */
-  #stars {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 11;
-    opacity: 0;
-    transition: opacity 2s ease;
-  }
-  .star {
-    position: absolute;
-    border-radius: 50%;
-    background: #fff;
-    animation: twinkle 2s infinite alternate;
-  }
-  @keyframes twinkle {
-    from { opacity: 0.3; }
-    to   { opacity: 1; }
-  }
-
-  /* ── Sun / Moon ── */
-  #celestial {
-    position: fixed;
-    top: 24px;
-    right: 36px;
-    z-index: 12;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #ffe066, #ffb300);
-    box-shadow: 0 0 32px 10px #ffda0099;
-    transition: background 3s ease, box-shadow 3s ease, top 3s ease, right 3s ease;
-  }
-  #celestial.moon {
-    background: radial-gradient(circle at 38% 38%, #e8e8ff, #b0b8d8);
-    box-shadow: 0 0 24px 6px #8899cc55;
-  }
-
-  /* ── Phase label ── */
-  #phase-label {
-    position: fixed;
-    top: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 20;
-    color: #fff;
-    font-size: 13px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-shadow: 0 2px 8px #000a;
-    opacity: 0;
-    transition: opacity 1s ease;
-    background: rgba(0,0,0,0.28);
-    padding: 4px 18px;
-    border-radius: 20px;
-    backdrop-filter: blur(6px);
-  }
-
-  /* ── Fact card ── */
-  #fact-card {
-    position: fixed;
-    bottom: 36px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    z-index: 30;
-    background: rgba(10, 10, 30, 0.82);
-    border: 1px solid rgba(150, 180, 255, 0.35);
-    border-radius: 16px;
-    padding: 14px 22px;
-    max-width: 88vw;
-    text-align: center;
-    backdrop-filter: blur(12px);
-    opacity: 0;
-    transition: opacity 1.2s ease, transform 1.2s ease;
-    pointer-events: none;
-  }
-  #fact-card.visible {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
-  }
-  #fact-card .fact-icon {
-    font-size: 22px;
-    margin-bottom: 6px;
-  }
-  #fact-card .fact-label {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: #8ab4ff;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-  #fact-card .fact-text {
-    font-size: 15px;
-    color: #eef2ff;
-    line-height: 1.5;
-    font-style: italic;
-  }
-
-  /* ── Question modal ── */
-  #question-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,5,0.65);
-    backdrop-filter: blur(8px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 1s ease;
-  }
-  #question-modal.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .q-box {
-    background: linear-gradient(145deg, #0b0f2a, #1a1040);
-    border: 1px solid rgba(160, 120, 255, 0.4);
-    border-radius: 24px;
-    padding: 36px 32px 28px;
-    max-width: 82vw;
-    text-align: center;
-    box-shadow: 0 8px 48px #6030ff33;
-    animation: floatIn 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
-  }
-  @keyframes floatIn {
-    from { transform: translateY(40px) scale(0.92); opacity: 0; }
-    to   { transform: none; opacity: 1; }
-  }
-  .q-icon { font-size: 36px; margin-bottom: 12px; }
-  .q-label {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: #a080ff;
-    text-transform: uppercase;
-    margin-bottom: 14px;
-  }
-  .q-text {
-    font-size: 17px;
-    color: #e8eaff;
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
-  .q-close {
-    background: linear-gradient(135deg, #5020cc, #8040ff);
-    color: #fff;
-    border: none;
-    border-radius: 50px;
-    padding: 10px 28px;
-    font-size: 14px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    box-shadow: 0 4px 18px #6030cc55;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .q-close:hover { transform: scale(1.05); box-shadow: 0 6px 24px #6030cc99; }
-
-  /* ── Timeline bar ── */
-  #timeline {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 0%;
-    height: 3px;
-    background: linear-gradient(90deg, #ffe066, #ff8000, #6644ff, #4488ff, #ffe066);
-    background-size: 300% 100%;
-    animation: gradShift 20s linear infinite;
-    z-index: 40;
-    transition: width 0.5s linear;
-  }
-  @keyframes gradShift {
-    from { background-position: 0% 0; }
-    to   { background-position: 300% 0; }
-  }
-
-  /* ── Flower 2D overlay (bloom/wither) ── */
-  #flower-overlay {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 15;
-    font-size: 64px;
-    opacity: 0;
-    filter: drop-shadow(0 0 18px #ff88aacc);
-    transition: opacity 1.5s ease, font-size 1s ease, filter 1.5s ease;
-    pointer-events: none;
-    text-align: center;
-  }
-  #flower-overlay.bloomed {
-    opacity: 1;
-    font-size: 80px;
-    filter: drop-shadow(0 0 28px #ff44aaff);
-  }
-  #flower-overlay.withered {
-    opacity: 0.4;
-    font-size: 52px;
-    filter: drop-shadow(0 0 6px #996644aa) grayscale(0.6);
-  }
-  #flower-overlay.gone { opacity: 0; }
+button {
+  display: block;
+  margin: 5px 0;
+  width: 100%;
+  padding: 10px;
+}
 </style>
+
 </head>
-<body>
 
-<!-- Sky + Celestial body -->
-<div id="sky-overlay"></div>
-<div id="stars"></div>
-<div id="celestial"></div>
+<body style="margin:0; overflow:hidden;">
 
-<!-- Phase label -->
-<div id="phase-label">День</div>
-
-<!-- Flower emoji overlay (shows state) -->
-<div id="flower-overlay">🌵</div>
-
-<!-- Fact card -->
-<div id="fact-card">
-  <div class="fact-icon">🌙</div>
-  <div class="fact-label">Факт о кактусе</div>
-  <div class="fact-text">Цветёт только ночью — цветок живёт один день</div>
+<!-- ВОПРОС -->
+<div id="quiz">
+  <h3>Почему растению выгодно цвести ночью?</h3>
+  <button onclick="checkAnswer(1)">Меньше солнечного света</button>
+  <button onclick="checkAnswer(2)">Активны ночные опылители ✅</button>
+  <button onclick="checkAnswer(3)">Холоднее</button>
+  <button onclick="checkAnswer(4)">Нет ветра</button>
 </div>
 
-<!-- Question modal -->
-<div id="question-modal">
-  <div class="q-box">
-    <div class="q-icon">🤔</div>
-    <div class="q-label">Вопрос для размышления</div>
-    <div class="q-text">Почему растению выгодно цвести ночью?</div>
-    <button class="q-close" onclick="closeQuestion()">Подумаю над этим ✨</button>
-  </div>
-</div>
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
 
-<!-- Timeline progress -->
-<div id="timeline"></div>
+<a-assets>
+  <video id="video" src="cactus.mp4" preload="auto" crossorigin="anonymous"></video>
+</a-assets>
 
-<!-- AR Scene -->
-<a-scene
-  embedded
-  arjs="sourceType: webcam; debugUIEnabled: false;"
-  vr-mode-ui="enabled: false"
->
-  <a-marker preset="hiro">
-    <a-entity id="root-entity" rotation="-90 0 0">
-      <a-entity
-        id="cactus-model"
-        gltf-model="Cactus.glb"
-        position="0 0 0"
-        scale="1 1 1"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
-      ></a-entity>
+<a-marker preset="hiro" id="marker">
 
-      <!-- Petals (bloom effect) - simple torus rings as flower petals -->
-      <a-entity id="bloom-group" visible="false">
-        <a-torus id="petal1" position="0 0.6 0" rotation="0 0 0"
-          radius="0.18" radius-tubular="0.05"
-          color="#ff66aa" opacity="0.9"
-          animation__rot="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"
-          animation__scale="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; dur: 2000; easing: easeOutElastic">
-        </a-torus>
-        <a-torus id="petal2" position="0 0.6 0" rotation="0 45 90"
-          radius="0.22" radius-tubular="0.04"
-          color="#ff44cc" opacity="0.7"
-          animation__rot="property: rotation; to: 360 45 90; loop: true; dur: 5000; easing: linear"
-          animation__scale="property: scale; from: 0.1 0.1 0.1; to: 1 1 1; dur: 2000; easing: easeOutElastic">
-        </a-torus>
-        <a-sphere position="0 0.6 0" radius="0.09" color="#ffdd00"
-          animation__scale="property: scale; from: 0 0 0; to: 1 1 1; dur: 1500; easing: easeOutElastic"
-          animation__glow="property: color; from: #ffdd00; to: #ffffff; dir: alternate; loop: true; dur: 800">
-        </a-sphere>
-        <!-- Glow halo -->
-        <a-sphere position="0 0.6 0" radius="0.3" color="#ff88cc"
-          opacity="0.18" side="back"
-          animation__pulse="property: scale; from: 0.8 0.8 0.8; to: 1.2 1.2 1.2; dir: alternate; loop: true; dur: 1200">
-        </a-sphere>
-      </a-entity>
+  <a-video
+    src="#video"
+    width="2"
+    height="1"
+    position="0 0 0"
+    rotation="-90 0 0"
+  ></a-video>
 
-      <!-- Night light (point light) -->
-      <a-light id="night-light" type="point" color="#8844ff" intensity="0" position="0 1 0"
-        animation__int="property: intensity; from: 0; to: 1.2; dur: 3000">
-      </a-light>
-    </a-entity>
-  </a-marker>
+</a-marker>
 
-  <a-entity camera></a-entity>
+<a-entity camera></a-entity>
 </a-scene>
 
 <script>
-// ── Generate stars ──────────────────────────────────────────────
-const starsEl = document.getElementById('stars');
-for (let i = 0; i < 120; i++) {
-  const s = document.createElement('div');
-  s.className = 'star';
-  const size = Math.random() * 2.5 + 0.5;
-  s.style.cssText = `
-    width:${size}px; height:${size}px;
-    top:${Math.random()*80}%;
-    left:${Math.random()*100}%;
-    animation-delay:${Math.random()*3}s;
-    animation-duration:${1.5 + Math.random()*2}s;
-  `;
-  starsEl.appendChild(s);
-}
+const marker = document.querySelector("#marker");
+const video = document.querySelector("#video");
+const quiz = document.getElementById("quiz");
 
-// ── State machine ────────────────────────────────────────────────
-// Phases (each duration in ms):
-// 0 - DAY        (5s)  sunny, cactus visible, no flower
-// 1 - SUNSET     (4s)  transition
-// 2 - NIGHT      (5s)  dark, flower blooms, fact appears
-// 3 - QUESTION   (3s)  question appears
-// 4 - DAWN       (4s)  flower withers
-// 5 - NEW DAY    (4s)  bright, cactus gone / empty
-const PHASES = [
-  { name: 'День',       dur: 5000 },
-  { name: 'Закат',      dur: 4000 },
-  { name: 'Ночь',       dur: 5000 },
-  { name: 'Вопрос',     dur: 5000 },
-  { name: 'Рассвет',    dur: 4000 },
-  { name: 'Новый день', dur: 4000 },
-];
-const TOTAL = PHASES.reduce((a,p)=>a+p.dur,0);
+// Запуск видео при появлении маркера
+marker.addEventListener("markerFound", () => {
+  video.play();
+});
 
-const skyEl      = document.getElementById('sky-overlay');
-const starsDiv   = document.getElementById('stars');
-const celestial  = document.getElementById('celestial');
-const phaseLabel = document.getElementById('phase-label');
-const factCard   = document.getElementById('fact-card');
-const qModal     = document.getElementById('question-modal');
-const timeline   = document.getElementById('timeline');
-const flowerOv   = document.getElementById('flower-overlay');
-const bloomGrp   = document.getElementById('bloom-group');
-const nightLight = document.getElementById('night-light');
+// Пауза если убрали маркер
+marker.addEventListener("markerLost", () => {
+  video.pause();
+});
 
-let currentPhase = -1;
-let startTime = Date.now();
-let questionShown = false;
+// Когда видео закончилось → показать вопрос
+video.addEventListener("ended", () => {
+  quiz.style.display = "block";
+});
 
-function showPhaseLabel(text, dur=2000) {
-  phaseLabel.textContent = text;
-  phaseLabel.style.opacity = '1';
-  setTimeout(()=>{ phaseLabel.style.opacity='0'; }, dur);
-}
-
-function applyPhase(idx) {
-  if (idx === currentPhase) return;
-  currentPhase = idx;
-
-  switch(idx) {
-    case 0: // DAY
-      skyEl.style.background = 'rgba(135,200,255,0.22)';
-      starsDiv.style.opacity = '0';
-      celestial.className = '';
-      celestial.style.background = 'radial-gradient(circle, #ffe066, #ffb300)';
-      celestial.style.boxShadow = '0 0 32px 10px #ffda0099';
-      celestial.style.top = '24px'; celestial.style.right = '36px';
-      flowerOv.className = '';      // reset
-      flowerOv.textContent = '🌵';
-      flowerOv.style.opacity = '0';
-      bloomGrp && (bloomGrp.setAttribute('visible','false'));
-      if(nightLight) nightLight.setAttribute('intensity','0');
-      factCard.classList.remove('visible');
-      showPhaseLabel('🌞 День');
-      break;
-
-    case 1: // SUNSET
-      skyEl.style.background = 'rgba(255,120,40,0.28)';
-      celestial.style.background = 'radial-gradient(circle, #ff8844, #ff4400)';
-      celestial.style.boxShadow = '0 0 40px 14px #ff660055';
-      celestial.style.top = '60px';
-      showPhaseLabel('🌅 Закат');
-      break;
-
-    case 2: // NIGHT - flower blooms
-      skyEl.style.background = 'rgba(5,5,30,0.72)';
-      starsDiv.style.opacity = '1';
-      celestial.className = 'moon';
-      celestial.style.top = '24px'; celestial.style.right = '36px';
-      flowerOv.textContent = '🌺';
-      setTimeout(()=>{ flowerOv.className = 'bloomed'; }, 1000);
-      bloomGrp && (bloomGrp.setAttribute('visible','true'));
-      if(nightLight) nightLight.setAttribute('intensity','1.2');
-      setTimeout(()=>{ factCard.classList.add('visible'); }, 2000);
-      showPhaseLabel('🌙 Ночь — цветок расцвёл!');
-      break;
-
-    case 3: // QUESTION
-      if (!questionShown) {
-        questionShown = true;
-        qModal.classList.add('visible');
-      }
-      break;
-
-    case 4: // DAWN - flower withers
-      skyEl.style.background = 'rgba(200,100,80,0.3)';
-      starsDiv.style.opacity = '0';
-      celestial.className = '';
-      celestial.style.background = 'radial-gradient(circle, #ffcc88, #ff8833)';
-      celestial.style.boxShadow = '0 0 28px 8px #ffaa4455';
-      flowerOv.className = 'withered';
-      factCard.classList.remove('visible');
-      bloomGrp && (bloomGrp.setAttribute('visible','false'));
-      showPhaseLabel('🌄 Рассвет — цветок увядает');
-      break;
-
-    case 5: // NEW DAY - cactus gone
-      skyEl.style.background = 'rgba(135,200,255,0.22)';
-      celestial.className = '';
-      celestial.style.background = 'radial-gradient(circle, #ffe066, #ffb300)';
-      celestial.style.boxShadow = '0 0 32px 10px #ffda0099';
-      flowerOv.className = 'gone';
-      // Hide cactus model from AR
-      const mdl = document.getElementById('cactus-model');
-      if (mdl) mdl.setAttribute('visible','false');
-      showPhaseLabel('🌞 Новый день — цветка нет');
-      break;
+// Проверка ответа
+function checkAnswer(num) {
+  if (num === 2) {
+    alert("Правильно! 🎉 Ночью активны опылители, например летучие мыши и мотыльки.");
+  } else {
+    alert("Попробуй ещё раз 😊");
   }
 }
-
-function closeQuestion() {
-  qModal.classList.remove('visible');
-}
-
-// ── Animation loop ──────────────────────────────────────────────
-function tick() {
-  const elapsed = Date.now() - startTime;
-  const progress = Math.min(elapsed / TOTAL, 1);
-  timeline.style.width = (progress * 100) + '%';
-
-  let acc = 0;
-  for (let i = 0; i < PHASES.length; i++) {
-    acc += PHASES[i].dur;
-    if (elapsed < acc) {
-      applyPhase(i);
-      break;
-    }
-  }
-
-  if (progress < 1) {
-    requestAnimationFrame(tick);
-  }
-}
-
-// Start after a tiny delay so scene loads
-setTimeout(()=>{ startTime = Date.now(); tick(); }, 800);
 </script>
+
 </body>
 </html>
