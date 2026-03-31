@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AR Цветок</title>
+
+<title>AR Динозавры</title>
 
 <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -15,126 +16,94 @@ body {
   font-family: sans-serif;
 }
 
-/* Вопрос */
-#quiz {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: none;
-  justify-content: center;
-  padding: 20px;
-}
-
 /* Карточка */
-.card {
-  background: linear-gradient(135deg, #ffffff, #e8f5e9);
-  border-radius: 20px;
-  padding: 20px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  text-align: center;
+.panel {
+  position: absolute;
+  bottom: 20px;
+  left: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #ffffff, #f3f7ff);
+  padding: 18px;
+  border-radius: 16px;
+  display: none;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: fadeIn 0.4s ease;
 }
 
 /* Заголовок */
-.card h2 {
-  margin-bottom: 15px;
+.panel h3 {
+  margin-top: 0;
+  font-size: 18px;
 }
 
 /* Кнопки */
 button {
+  margin-top: 8px;
   width: 100%;
-  margin: 8px 0;
   padding: 12px;
   border: none;
-  border-radius: 12px;
-  background: #4CAF50;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4CAF50, #66bb6a);
   color: white;
   font-size: 16px;
   transition: 0.2s;
 }
 
-button:hover {
-  transform: scale(1.05);
-}
-
 button:active {
-  transform: scale(0.95);
+  transform: scale(0.97);
 }
 
-/* Анимация появления */
-#quiz.show {
-  display: flex;
-  animation: fadeIn 0.5s ease;
+/* Результат */
+#result {
+  margin-top: 12px;
+  font-weight: bold;
+  font-size: 16px;
 }
 
+/* Анимация */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from {opacity: 0; transform: translateY(20px);}
+  to {opacity: 1; transform: translateY(0);}
 }
 </style>
-
 </head>
 
 <body>
 
-<!-- ВОПРОС -->
-<div id="quiz">
-  <div class="card">
-    <h2>🌙 Почему растению выгодно цвести ночью?</h2>
-
-    <button onclick="checkAnswer(1)">Меньше солнечного света</button>
-    <button onclick="checkAnswer(2)">🦇 Активны ночные опылители</button>
-    <button onclick="checkAnswer(3)">Прохладнее</button>
-    <button onclick="checkAnswer(4)">Нет ветра</button>
-  </div>
+<!-- ФАКТ -->
+<div id="fact" class="panel">
+  <h3>🌿 Интересный факт</h3>
+  <p>Гинкго видело динозавров. Ему может быть до 3000 лет!</p>
+  <button onclick="showQuiz()">Дальше ➡️</button>
 </div>
 
-<a-scene
-embedded
-arjs="sourceType: webcam; debugUIEnabled: false;"
-vr-mode-ui="enabled: false"
->
+<!-- ВОПРОС -->
+<div id="quiz" class="panel">
+  <h3>🦖 Что ещё жило во времена динозавров?</h3>
+
+  <button onclick="checkAnswer(1)">🐊 Крокодилы</button>
+  <button onclick="checkAnswer(2)">🐱 Кошки</button>
+  <button onclick="checkAnswer(3)">🐶 Собаки</button>
+  <button onclick="checkAnswer(4)">🐄 Коровы</button>
+
+  <div id="result"></div>
+</div>
+
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
 
 <a-assets>
-  <video 
-    id="video"
-    src="cactus.mp4"
-    preload="auto"
-    crossorigin="anonymous"
-    muted
-    playsinline
-    webkit-playsinline
-  ></video>
+  <video id="video" src="dino.mp4" preload="auto" crossorigin="anonymous"></video>
 </a-assets>
 
 <a-marker preset="hiro" id="marker">
 
-  <!-- Фон под видео -->
-  <a-plane 
-    width="2.2" 
-    height="1.3" 
-    color="#000" 
-    position="0 -0.01 0"
-    rotation="-90 0 0">
-  </a-plane>
-
-  <!-- Видео -->
+  <!-- 📱 ВАЖНО: адаптация под вертикальный экран -->
   <a-video
-    id="videoPlane"
     src="#video"
-    width="2"
-    height="1.125"
+    width="1.6"
+    height="0.9"
     position="0 0 0"
     rotation="-90 0 0"
-    material="shader: flat"
   ></a-video>
 
 </a-marker>
@@ -145,54 +114,39 @@ vr-mode-ui="enabled: false"
 <script>
 const marker = document.querySelector("#marker");
 const video = document.querySelector("#video");
+
+const fact = document.getElementById("fact");
 const quiz = document.getElementById("quiz");
-const videoPlane = document.querySelector("#videoPlane");
+const result = document.getElementById("result");
 
-// Разблокировка видео (важно для мобильных)
-document.body.addEventListener('click', () => {
-  video.play();
-  video.pause();
-}, { once: true });
-
-// Запуск видео
+// Видео
 marker.addEventListener("markerFound", () => {
-  video.currentTime = 0;
   video.play();
 });
 
-// Пауза если маркер исчез
 marker.addEventListener("markerLost", () => {
   video.pause();
 });
 
-// АДАПТАЦИЯ ПОД ПРОПОРЦИИ ВИДЕО
-video.addEventListener("loadedmetadata", () => {
-  const ratio = video.videoWidth / video.videoHeight;
-  videoPlane.setAttribute("width", 2);
-  videoPlane.setAttribute("height", 2 / ratio);
-});
-
-// Когда видео закончилось → показать вопрос
+// После видео → факт
 video.addEventListener("ended", () => {
-  quiz.classList.add("show");
+  fact.style.display = "block";
 });
 
-// Проверка ответа
+// Факт → вопрос
+function showQuiz() {
+  fact.style.display = "none";
+  quiz.style.display = "block";
+}
+
+// Ответ
 function checkAnswer(num) {
-  const buttons = document.querySelectorAll("button");
-
-  buttons.forEach((btn, index) => {
-    if (index === 1) {
-      btn.style.background = "green";
-    } else {
-      btn.style.background = "red";
-    }
-  });
-
-  if (num === 2) {
-    setTimeout(() => alert("Правильно! 🎉"), 200);
+  if (num === 1) {
+    result.innerHTML = "🎉 Правильно! Крокодилы жили вместе с динозаврами.";
+    result.style.color = "green";
   } else {
-    setTimeout(() => alert("Попробуй ещё 😊"), 200);
+    result.innerHTML = "❌ Почти! Попробуй ещё 😊";
+    result.style.color = "red";
   }
 }
 </script>
