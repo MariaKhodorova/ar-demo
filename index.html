@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AR Динозавры</title>
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+a-scene {
+  pointer-events: none;
+}
+
+.panel {
+  position: fixed;
+  bottom: 20px;
+  left: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #ffffff, #f3f7ff);
+  padding: 18px;
+  border-radius: 16px;
+  display: none;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  animation: fadeIn 0.4s ease;
+  z-index: 9999;
+  pointer-events: all;
+}
+
+.panel h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+button {
+  margin-top: 8px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4CAF50, #66bb6a);
+  color: white;
+  font-size: 16px;
+  transition: 0.2s;
+  cursor: pointer;
+  pointer-events: all;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+#result {
+  margin-top: 12px;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+@keyframes fadeIn {
+  from {opacity: 0; transform: translateY(20px);}
+  to {opacity: 1; transform: translateY(0);}
+}
+</style>
+</head>
+<body>
+
+<div id="fact" class="panel">
+  <h3>🌿 Интересный факт</h3>
+  <p>Гинкго видело динозавров. Ему может быть до 3000 лет!</p>
+  <button onclick="showQuiz()">Дальше ➡️</button>
+</div>
+
+<div id="quiz" class="panel">
+  <h3>🦖 Что ещё жило во времена динозавров?</h3>
+  <button onclick="checkAnswer(1)">🐊 Крокодилы</button>
+  <button onclick="checkAnswer(2)">🐱 Кошки</button>
+  <button onclick="checkAnswer(3)">🐶 Собаки</button>
+  <button onclick="checkAnswer(4)">🐄 Коровы</button>
+  <div id="result"></div>
+</div>
+
+<a-scene
+  embedded
+  arjs="sourceType: webcam;
+        debugUIEnabled: false;
+        trackingMethod: best;"
+  vr-mode-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true;"
+>
+  <a-assets>
+    <video id="video" src="dino.mp4" preload="auto" crossorigin="anonymous"></video>
+  </a-assets>
+
+  <a-marker
+    preset="hiro"
+    id="marker"
+    smooth="true"
+    smoothCount="10"
+    smoothTolerance="0.01"
+    smoothThreshold="5"
+    raycaster="objects: .clickable"
+    emitevents="true"
+  >
+    <a-video
+      src="#video"
+      width="1.6"
+      height="0.9"
+      position="0 0 0"
+      rotation="-90 0 0"
+    ></a-video>
+  </a-marker>
+
+  <a-entity camera></a-entity>
+</a-scene>
+
+<script>
+const marker = document.querySelector("#marker");
+const video = document.querySelector("#video");
+const fact = document.getElementById("fact");
+const quiz = document.getElementById("quiz");
+const result = document.getElementById("result");
+
+marker.addEventListener("markerFound", () => {
+  video.play().catch(e => console.log("video play error:", e));
+});
+
+marker.addEventListener("markerLost", () => {
+  video.pause();
+});
+
+video.addEventListener("ended", () => {
+  fact.style.display = "block";
+});
+
+function showQuiz() {
+  fact.style.display = "none";
+  quiz.style.display = "block";
+}
+
+function checkAnswer(num) {
+  if (num === 1) {
+    result.innerHTML = "🎉 Правильно! Крокодилы жили вместе с динозаврами.";
+    result.style.color = "green";
+  } else {
+    result.innerHTML = "❌ Почти! Попробуй ещё 😊";
+    result.style.color = "red";
+  }
+}
+</script>
+</body>
+</html>
