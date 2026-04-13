@@ -1,257 +1,205 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>AR Динозавры — MindAR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AR Динозавры</title>
 
-<!-- Подключаем MindAR и A-Frame -->
+<!-- MindAR + A-Frame -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 
 <style>
+* { box-sizing: border-box; }
 body {
   margin: 0;
   overflow: hidden;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', sans-serif;
+  background: #000;
 }
 
-/* Скрываем стандартный UI MindAR */
-.mindar-ui-loading, .mindar-ui-error, .mindar-ui-scanning {
-  display: none !important;
-}
-
-/* Кастомный лоадер */
-#custom-loader {
+/* overlay panels — поверх канваса MindAR */
+#ui-layer {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.9);
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 99999;
-  color: white;
-  font-size: 1.2rem;
   flex-direction: column;
-  backdrop-filter: blur(4px);
-}
-
-#custom-loader .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #4CAF50;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-
-#custom-loader.hidden {
-  display: none;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  justify-content: flex-end;
+  padding: 16px;
 }
 
 .panel {
-  position: fixed;
-  bottom: 20px;
-  left: 12px;
-  right: 12px;
-  background: rgba(255,255,255,0.95);
-  padding: 18px;
-  border-radius: 16px;
   display: none;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-  z-index: 9999;
+  background: linear-gradient(135deg, #ffffff, #f3f7ff);
+  padding: 18px;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  animation: fadeUp 0.4s ease;
   pointer-events: all;
-  backdrop-filter: blur(8px);
+  margin-bottom: 8px;
 }
-
 .panel h3 {
-  margin-top: 0;
+  margin: 0 0 10px;
   font-size: 18px;
-  color: #2c3e50;
+}
+.panel p {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #333;
 }
 
 button {
-  margin-top: 8px;
+  display: block;
   width: 100%;
-  padding: 12px;
+  margin-top: 8px;
+  padding: 13px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #4CAF50, #66bb6a);
-  color: white;
+  color: #fff;
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.15s;
 }
-
-.quiz-btn {
-  margin: 6px 0;
-  background: linear-gradient(135deg, #3498db, #2980b9);
-}
+button:active { transform: scale(0.97); }
 
 #result {
   margin-top: 12px;
   font-weight: bold;
-  text-align: center;
+  font-size: 15px;
 }
 
-.instruction {
-  position: fixed;
-  bottom: 10px;
-  left: 0;
-  right: 0;
+#scanning-hint {
   text-align: center;
-  color: white;
-  background: rgba(0,0,0,0.6);
-  padding: 6px;
-  font-size: 12px;
-  z-index: 10;
+  color: rgba(255,255,255,0.85);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  padding-bottom: 12px;
   pointer-events: none;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 </style>
 </head>
 <body>
 
-<!-- Кастомный лоадер -->
-<div id="custom-loader">
-  <div class="spinner"></div>
-  <div>🦖 Загрузка AR...</div>
-  <div style="font-size: 10px; margin-top: 10px;">Наведите камеру на маркер</div>
+<!-- UI поверх AR-сцены -->
+<div id="ui-layer">
+  <p id="scanning-hint">📷 Наведи камеру на картинку-маркер</p>
+
+  <div id="fact" class="panel">
+    <h3>🌿 Интересный факт</h3>
+    <p>Гинкго видело динозавров. Ему может быть до 3000 лет!</p>
+    <button onclick="showQuiz()">Дальше ➡️</button>
+  </div>
+
+  <div id="quiz" class="panel">
+    <h3>🦖 Что ещё жило во времена динозавров?</h3>
+    <button onclick="checkAnswer(1)">🐊 Крокодилы</button>
+    <button onclick="checkAnswer(2)">🐱 Кошки</button>
+    <button onclick="checkAnswer(3)">🐶 Собаки</button>
+    <button onclick="checkAnswer(4)">🐄 Коровы</button>
+    <div id="result"></div>
+  </div>
 </div>
 
-<div class="instruction">
-  🦕 Наведите камеру на AR-маркер
-</div>
-
-<div id="fact" class="panel">
-  <h3>🌿 Интересный факт</h3>
-  <p>🌳 Гинкго видело динозавров. Ему может быть до 3000 лет!</p>
-  <button onclick="showQuiz()">Дальше ➡️</button>
-</div>
-
-<div id="quiz" class="panel">
-  <h3>🦖 Что ещё жило во времена динозавров?</h3>
-  <button class="quiz-btn" onclick="checkAnswer(1)">🐊 Крокодилы</button>
-  <button class="quiz-btn" onclick="checkAnswer(2)">🐱 Кошки</button>
-  <button class="quiz-btn" onclick="checkAnswer(3)">🐶 Собаки</button>
-  <button class="quiz-btn" onclick="checkAnswer(4)">🐄 Коровы</button>
-  <div id="result"></div>
-</div>
-
-<!-- A-Frame сцена -->
+<!-- MindAR A-Frame сцена -->
 <a-scene
-  mindar-image="imageTargetSrc: targets.mind; uiLoading: no; uiError: no; uiScanning: no;"
+  mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: yes; uiScanning: no; uiError: yes;"
+  color-space="sRGB"
+  renderer="colorManagement: true; physicallyCorrectLights: true;"
   vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: true"
-  embedded
-  renderer="logarithmicDepthBuffer: true;"
+  device-orientation-permission-ui="enabled: false"
 >
+  <a-assets>
+    <!--
+      Положи dino.mp4 рядом с index.html.
+      crossorigin нужен если файл отдаётся с другого домена.
+    -->
+    <video
+      id="dino-video"
+      src="dino.mp4"
+      preload="auto"
+      playsinline
+      webkit-playsinline
+      muted
+      loop="false"
+    ></video>
+  </a-assets>
 
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-  <a-entity mindar-image-target="targetIndex: 0">
+  <!--
+    mindar-image-target index="0" — первый (и единственный) таргет в targets.mind.
+    Если у тебя несколько — меняй index.
+  -->
+  <a-entity mindar-image-target="targetIndex: 0" id="ar-target">
+    <!--
+      Видео-плоскость.
+      width/height подбери под соотношение сторон своего видео.
+      Стандартное 16:9 → width=1, height=0.5625  (или 1.6 / 0.9).
+      position="0 0 0" — центр маркера.
+      rotation="-90 0 0" не нужен в MindAR (плоскость уже горизонтальная по умолчанию).
+    -->
     <a-video
-      src="dino.mp4"
-      width="1.6"
-      height="0.9"
-      position="0 0 0"
-      rotation="-90 0 0"
-      loop="false"
-      autoplay="false"
       id="ar-video"
+      src="#dino-video"
+      width="1"
+      height="0.5625"
+      position="0 0 0"
     ></a-video>
   </a-entity>
-
 </a-scene>
 
 <script>
-// Получаем элементы
-const scene = document.querySelector('a-scene');
-const video = document.querySelector('#ar-video');
-const factPanel = document.getElementById('fact');
-const quizPanel = document.getElementById('quiz');
-const resultDiv = document.getElementById('result');
-const loader = document.getElementById('custom-loader');
+  const target   = document.querySelector('#ar-target');
+  const video    = document.querySelector('#dino-video');
+  const hint     = document.querySelector('#scanning-hint');
+  const factEl   = document.querySelector('#fact');
+  const quizEl   = document.querySelector('#quiz');
+  const resultEl = document.querySelector('#result');
 
-let factShown = false;
-
-// Функция для скрытия лоадера
-function hideLoader() {
-  if (loader) {
-    loader.classList.add('hidden');
-  }
-}
-
-// Следим за запуском камеры через событие
-scene.addEventListener('ar-ready', () => {
-  console.log('AR готов, камера запущена');
-  hideLoader();
-});
-
-// Альтернативный способ: следим за ошибками
-scene.addEventListener('ar-error', (err) => {
-  console.error('AR ошибка:', err);
-  alert('Не удалось запустить камеру. Пожалуйста, разрешите доступ к камере и перезагрузите страницу.');
-  hideLoader();
-});
-
-// Отслеживание нахождения маркера
-const targetEntity = document.querySelector('[mindar-image-target]');
-
-if (targetEntity) {
-  targetEntity.addEventListener('mindar-image-target-found', () => {
-    console.log('Маркер найден!');
-    if (video) {
-      video.play().catch(e => console.log('Ошибка воспроизведения:', e));
-    }
+  // --- маркер найден ---
+  target.addEventListener('targetFound', () => {
+    hint.style.display = 'none';
+    video.muted = false;          // включи звук если нужен
+    video.play().catch(e => {
+      // автовоспроизведение со звуком блокируется браузером — оставляем muted
+      video.muted = true;
+      video.play();
+    });
   });
 
-  targetEntity.addEventListener('mindar-image-target-lost', () => {
-    console.log('Маркер потерян');
-    if (video) {
-      video.pause();
-    }
+  // --- маркер потерян ---
+  target.addEventListener('targetLost', () => {
+    hint.style.display = 'block';
+    video.pause();
   });
-}
 
-// Когда видео заканчивается
-if (video) {
+  // --- видео закончилось → показываем факт ---
   video.addEventListener('ended', () => {
-    console.log('Видео закончилось');
-    if (!factShown) {
-      factPanel.style.display = 'block';
-      factShown = true;
-    }
+    factEl.style.display = 'block';
   });
-}
 
-// Функции для панелей
-function showQuiz() {
-  factPanel.style.display = 'none';
-  quizPanel.style.display = 'block';
-}
-
-function checkAnswer(num) {
-  if (num === 1) {
-    resultDiv.innerHTML = "🎉 Правильно! Крокодилы жили вместе с динозаврами.";
-    resultDiv.style.color = "green";
-  } else {
-    resultDiv.innerHTML = "❌ Не совсем. Крокодилы — современники динозавров! Попробуй ещё 😊";
-    resultDiv.style.color = "red";
+  function showQuiz() {
+    factEl.style.display = 'none';
+    quizEl.style.display = 'block';
   }
-}
 
-// Таймаут на всякий случай — скрыть лоадер через 5 секунд
-setTimeout(() => {
-  hideLoader();
-}, 5000);
+  function checkAnswer(num) {
+    if (num === 1) {
+      resultEl.innerHTML = '🎉 Правильно! Крокодилы жили вместе с динозаврами.';
+      resultEl.style.color = 'green';
+    } else {
+      resultEl.innerHTML = '❌ Почти! Попробуй ещё 😊';
+      resultEl.style.color = 'red';
+    }
+  }
 </script>
 </body>
 </html>
