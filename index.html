@@ -3,203 +3,437 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AR Динозавры</title>
+<title>🌿 Точка 1 — Гинкго</title>
 
 <!-- MindAR + A-Frame -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  overflow: hidden;
-  font-family: 'Segoe UI', sans-serif;
-  background: #000;
-}
+  :root {
+    --green:   #4caf50;
+    --green-d: #388e3c;
+    --yellow:  #ffc107;
+    --red:     #e53935;
+    --bg:      rgba(255,255,255,0.96);
+    --radius:  18px;
+    --font:    'Segoe UI', system-ui, sans-serif;
+  }
 
-/* overlay panels — поверх канваса MindAR */
-#ui-layer {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 16px;
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
-.panel {
-  display: none;
-  background: linear-gradient(135deg, #ffffff, #f3f7ff);
-  padding: 18px;
-  border-radius: 18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  animation: fadeUp 0.4s ease;
-  pointer-events: all;
-  margin-bottom: 8px;
-}
-.panel h3 {
-  margin: 0 0 10px;
-  font-size: 18px;
-}
-.panel p {
-  margin: 0 0 10px;
-  font-size: 15px;
-  color: #333;
-}
+  body {
+    font-family: var(--font);
+    background: #000;
+    overflow: hidden;
+  }
 
-button {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 13px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #4CAF50, #66bb6a);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-button:active { transform: scale(0.97); }
+  /* ── HUD ────────────────────────────────── */
+  #hud {
+    position: fixed;
+    top: 12px; left: 12px; right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 9998;
+    pointer-events: none;
+  }
 
-#result {
-  margin-top: 12px;
-  font-weight: bold;
-  font-size: 15px;
-}
+  #progress-badge {
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 40px;
+    letter-spacing: 0.3px;
+  }
 
-#scanning-hint {
-  text-align: center;
-  color: rgba(255,255,255,0.85);
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  padding-bottom: 12px;
-  pointer-events: none;
-}
+  #point-badge {
+    background: var(--green);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 40px;
+  }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+  /* ── scanning hint ──────────────────────── */
+  #hint {
+    position: fixed;
+    bottom: 32px;
+    left: 0; right: 0;
+    text-align: center;
+    color: rgba(255,255,255,0.9);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    pointer-events: none;
+    z-index: 9997;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    transition: opacity 0.4s;
+  }
+
+  /* ── panels ─────────────────────────────── */
+  #ui {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 12px 12px 24px;
+    z-index: 9999;
+    pointer-events: none;
+  }
+
+  .panel {
+    display: none;
+    background: var(--bg);
+    border-radius: var(--radius);
+    padding: 20px 18px 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+    animation: slideUp 0.35s cubic-bezier(.22,.68,0,1.2);
+    pointer-events: all;
+  }
+
+  .panel h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1b1b1b;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .panel p {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.55;
+    margin-bottom: 14px;
+  }
+
+  /* ── buttons ────────────────────────────── */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 13px 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s, opacity 0.12s;
+    margin-top: 8px;
+    text-align: left;
+  }
+  .btn:active { transform: scale(0.97); opacity: 0.9; }
+
+  .btn-primary {
+    background: var(--green);
+    color: #fff;
+  }
+
+  .btn-answer {
+    background: #f4f6f8;
+    color: #222;
+    border: 2px solid #e0e0e0;
+  }
+
+  .btn-answer.correct {
+    background: #e8f5e9;
+    border-color: var(--green);
+    color: var(--green-d);
+  }
+
+  .btn-answer.wrong {
+    background: #ffebee;
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* ── result ─────────────────────────────── */
+  #result-msg {
+    margin-top: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: none;
+  }
+
+  #result-msg.ok {
+    background: #e8f5e9;
+    color: var(--green-d);
+  }
+
+  #result-msg.fail {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  /* ── stamp / completion ─────────────────── */
+  #stamp-panel .stamp-circle {
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    background: var(--yellow);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px;
+    margin: 0 auto 14px;
+    box-shadow: 0 4px 16px rgba(255,193,7,0.4);
+  }
+
+  #stamp-panel h2 { text-align: center; }
+  #stamp-panel p  { text-align: center; }
+
+  /* ── video placeholder ──────────────────── */
+  #placeholder {
+    position: fixed;
+    inset: 0;
+    background: #111;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 8000;
+    color: #fff;
+    pointer-events: none;
+  }
+
+  #placeholder .leaf { font-size: 64px; }
+  #placeholder p { font-size: 14px; opacity: 0.7; }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
 
-<!-- UI поверх AR-сцены -->
-<div id="ui-layer">
-  <p id="scanning-hint">📷 Наведи камеру на картинку-маркер</p>
-
-  <div id="fact" class="panel">
-    <h3>🌿 Интересный факт</h3>
-    <p>Гинкго видело динозавров. Ему может быть до 3000 лет!</p>
-    <button onclick="showQuiz()">Дальше ➡️</button>
-  </div>
-
-  <div id="quiz" class="panel">
-    <h3>🦖 Что ещё жило во времена динозавров?</h3>
-    <button onclick="checkAnswer(1)">🐊 Крокодилы</button>
-    <button onclick="checkAnswer(2)">🐱 Кошки</button>
-    <button onclick="checkAnswer(3)">🐶 Собаки</button>
-    <button onclick="checkAnswer(4)">🐄 Коровы</button>
-    <div id="result"></div>
-  </div>
+<!-- HUD: прогресс + название точки -->
+<div id="hud">
+  <div id="progress-badge">⭐ <span id="done-count">0</span> / 7</div>
+  <div id="point-badge">🌿 Точка 1</div>
 </div>
 
-<!-- MindAR A-Frame сцена -->
+<!-- Подсказка навести камеру -->
+<div id="hint">📷 Найди карточку с котом и наведи камеру</div>
+
+<!-- Заглушка вместо видео (убрать когда будет mp4) -->
+<div id="placeholder">
+  <div class="leaf">🌿</div>
+  <p>Видео появится здесь</p>
+</div>
+
+<!-- UI: факт и квиз -->
+<div id="ui">
+
+  <!-- Панель 1: факт -->
+  <div id="fact-panel" class="panel">
+    <h2>🌿 Интересный факт</h2>
+    <!--
+      ═══════════════════════════════════════
+        РЕДАКТИРУЙ ЗДЕСЬ для каждой точки:
+      ═══════════════════════════════════════
+    -->
+    <p>Гинкго — живое ископаемое! Эти деревья росли ещё при динозаврах, 200 миллионов лет назад. Одно дерево может прожить больше 3000 лет!</p>
+    <button class="btn btn-primary" onclick="showQuiz()">Далее — вопрос ➡️</button>
+  </div>
+
+  <!-- Панель 2: квиз -->
+  <div id="quiz-panel" class="panel">
+    <h2>🦖 Вопрос</h2>
+    <!--
+      ═══════════════════════════════════════
+        РЕДАКТИРУЙ ЗДЕСЬ для каждой точки:
+        correctAnswer = номер правильного (1-4)
+      ═══════════════════════════════════════
+    -->
+    <p>Сколько лет может прожить гинкго?</p>
+    <button class="btn btn-answer" onclick="checkAnswer(this, 1)">До 100 лет</button>
+    <button class="btn btn-answer" onclick="checkAnswer(this, 2)">До 500 лет</button>
+    <button class="btn btn-answer" onclick="checkAnswer(this, 3)">Более 3000 лет ✓</button>
+    <button class="btn btn-answer" onclick="checkAnswer(this, 4)">Гинкго живёт вечно</button>
+    <div id="result-msg"></div>
+  </div>
+
+  <!-- Панель 3: штамп получен -->
+  <div id="stamp-panel" class="panel">
+    <div class="stamp-circle">🌿</div>
+    <h2>Штамп получен!</h2>
+    <p>Точка 1 — Гинкго пройдена.<br>Ищи следующую карточку с котом!</p>
+    <button class="btn btn-primary" onclick="goNext()">К следующей точке 🗺️</button>
+  </div>
+
+</div><!-- /ui -->
+
+<!-- ════════════════════════════════════
+     MindAR сцена
+     Положи targets.mind рядом с index.html
+     ════════════════════════════════════ -->
 <a-scene
-  mindar-image="imageTargetSrc: targets.mind; autoStart: true; uiLoading: yes; uiScanning: no; uiError: yes;"
+  mindar-image="imageTargetSrc: ../targets.mind; autoStart: true; uiLoading: yes; uiScanning: no; uiError: yes;"
   color-space="sRGB"
-  renderer="colorManagement: true; physicallyCorrectLights: true;"
+  renderer="colorManagement: true;"
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false"
 >
   <a-assets>
     <!--
-      Положи dino.mp4 рядом с index.html.
-      crossorigin нужен если файл отдаётся с другого домена.
+      Раскомментируй и замени src когда будет видео:
+      <video id="plant-video" src="../videos/ginkgo.mp4"
+             preload="auto" playsinline webkit-playsinline muted loop="false"></video>
     -->
-    <video
-      id="dino-video"
-      src="dino.mp4"
-      preload="auto"
-      playsinline
-      webkit-playsinline
-      muted
-      loop="false"
-    ></video>
   </a-assets>
 
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
   <!--
-    mindar-image-target index="0" — первый (и единственный) таргет в targets.mind.
-    Если у тебя несколько — меняй index.
+    targetIndex: 0 — первое изображение в targets.mind
+    Для каждой точки меняй: 0, 1, 2 … 6
   -->
   <a-entity mindar-image-target="targetIndex: 0" id="ar-target">
+
     <!--
-      Видео-плоскость.
-      width/height подбери под соотношение сторон своего видео.
-      Стандартное 16:9 → width=1, height=0.5625  (или 1.6 / 0.9).
-      position="0 0 0" — центр маркера.
-      rotation="-90 0 0" не нужен в MindAR (плоскость уже горизонтальная по умолчанию).
+      Когда будет видео — раскомментируй a-video и удали a-plane:
     -->
+
+    <!-- Заглушка — зелёный прямоугольник вместо видео -->
+    <a-plane
+      color="#2e7d32"
+      width="1" height="0.5625"
+      position="0 0 0"
+      id="placeholder-plane"
+    ></a-plane>
+
+    <!--
     <a-video
-      id="ar-video"
-      src="#dino-video"
-      width="1"
-      height="0.5625"
+      src="#plant-video"
+      width="1" height="0.5625"
       position="0 0 0"
     ></a-video>
+    -->
+
   </a-entity>
 </a-scene>
 
 <script>
-  const target   = document.querySelector('#ar-target');
-  const video    = document.querySelector('#dino-video');
-  const hint     = document.querySelector('#scanning-hint');
-  const factEl   = document.querySelector('#fact');
-  const quizEl   = document.querySelector('#quiz');
-  const resultEl = document.querySelector('#result');
+  /* ════════════════════════════════════════
+     НАСТРОЙКИ ТОЧКИ — меняй для каждой страницы
+     ════════════════════════════════════════ */
+  const POINT_ID      = 1;           // номер точки (1–7)
+  const CORRECT_ANS   = 3;           // номер правильного ответа (1–4)
+  const NEXT_URL      = '../point2/'; // куда вести после прохождения
+  const HAS_VIDEO     = false;        // true — когда добавишь mp4
 
-  // --- маркер найден ---
+  /* ════════════════════════════════════════ */
+
+  const target      = document.getElementById('ar-target');
+  const hint        = document.getElementById('hint');
+  const factPanel   = document.getElementById('fact-panel');
+  const quizPanel   = document.getElementById('quiz-panel');
+  const stampPanel  = document.getElementById('stamp-panel');
+  const resultMsg   = document.getElementById('result-msg');
+  const placeholder = document.getElementById('placeholder');
+  const doneCount   = document.getElementById('done-count');
+
+  let answered = false;
+
+  /* ── прогресс из localStorage ────────────── */
+  function getProgress() {
+    try {
+      return JSON.parse(localStorage.getItem('quest_progress') || '[]');
+    } catch { return []; }
+  }
+
+  function markDone(id) {
+    const p = getProgress();
+    if (!p.includes(id)) { p.push(id); localStorage.setItem('quest_progress', JSON.stringify(p)); }
+  }
+
+  function updateHUD() {
+    doneCount.textContent = getProgress().length;
+  }
+
+  /* ── AR события ──────────────────────────── */
   target.addEventListener('targetFound', () => {
-    hint.style.display = 'none';
-    video.muted = false;          // включи звук если нужен
-    video.play().catch(e => {
-      // автовоспроизведение со звуком блокируется браузером — оставляем muted
-      video.muted = true;
-      video.play();
-    });
+    hint.style.opacity = '0';
+
+    if (HAS_VIDEO) {
+      const vid = document.getElementById('plant-video');
+      vid.muted = false;
+      vid.play().catch(() => { vid.muted = true; vid.play(); });
+      vid.addEventListener('ended', showFact, { once: true });
+    } else {
+      // нет видео — показываем заглушку и факт сразу
+      placeholder.style.display = 'flex';
+      setTimeout(showFact, 1200);
+    }
   });
 
-  // --- маркер потерян ---
   target.addEventListener('targetLost', () => {
-    hint.style.display = 'block';
-    video.pause();
+    hint.style.opacity = '1';
+    placeholder.style.display = 'none';
+    if (HAS_VIDEO) {
+      const vid = document.getElementById('plant-video');
+      vid.pause();
+    }
   });
 
-  // --- видео закончилось → показываем факт ---
-  video.addEventListener('ended', () => {
-    factEl.style.display = 'block';
-  });
+  /* ── логика экранов ─────────────────────── */
+  function showFact() {
+    placeholder.style.display = 'none';
+    factPanel.style.display = 'block';
+  }
 
   function showQuiz() {
-    factEl.style.display = 'none';
-    quizEl.style.display = 'block';
+    factPanel.style.display = 'none';
+    quizPanel.style.display = 'block';
   }
 
-  function checkAnswer(num) {
-    if (num === 1) {
-      resultEl.innerHTML = '🎉 Правильно! Крокодилы жили вместе с динозаврами.';
-      resultEl.style.color = 'green';
+  function checkAnswer(btn, num) {
+    if (answered) return;
+    answered = true;
+
+    // блокируем все кнопки
+    document.querySelectorAll('.btn-answer').forEach(b => {
+      b.style.pointerEvents = 'none';
+      b.style.opacity = '0.6';
+    });
+
+    if (num === CORRECT_ANS) {
+      btn.classList.add('correct');
+      btn.style.opacity = '1';
+      resultMsg.className = 'ok';
+      resultMsg.textContent = '🎉 Правильно! Молодец!';
+      resultMsg.style.display = 'block';
+      markDone(POINT_ID);
+      updateHUD();
+      setTimeout(() => {
+        quizPanel.style.display = 'none';
+        stampPanel.style.display = 'block';
+      }, 1600);
     } else {
-      resultEl.innerHTML = '❌ Почти! Попробуй ещё 😊';
-      resultEl.style.color = 'red';
+      btn.classList.add('wrong');
+      btn.style.opacity = '1';
+      resultMsg.className = 'fail';
+      resultMsg.textContent = '❌ Не совсем! Попробуй ещё раз 😊';
+      resultMsg.style.display = 'block';
+      // разблокируем через 1 сек для повторной попытки
+      setTimeout(() => {
+        document.querySelectorAll('.btn-answer').forEach(b => {
+          b.style.pointerEvents = '';
+          b.style.opacity = '';
+          b.classList.remove('wrong');
+        });
+        resultMsg.style.display = 'none';
+        answered = false;
+      }, 1000);
     }
   }
+
+  function goNext() {
+    window.location.href = NEXT_URL;
+  }
+
+  /* ── init ───────────────────────────────── */
+  updateHUD();
 </script>
 </body>
 </html>

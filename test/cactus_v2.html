@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AR Цветок</title>
+
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+<style>
+#quiz {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  right: 10px;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  display: none;
+  font-family: sans-serif;
+}
+
+button {
+  display: block;
+  margin: 5px 0;
+  width: 100%;
+  padding: 10px;
+}
+</style>
+
+</head>
+
+<body style="margin:0; overflow:hidden;">
+
+<!-- ВОПРОС -->
+<div id="quiz">
+  <h3>Почему растению выгодно цвести ночью?</h3>
+  <button onclick="checkAnswer(1)">Меньше солнечного света</button>
+  <button onclick="checkAnswer(2)">Активны ночные опылители ✅</button>
+  <button onclick="checkAnswer(3)">Холоднее</button>
+  <button onclick="checkAnswer(4)">Нет ветра</button>
+</div>
+
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+
+<a-assets>
+  <video id="video" src="cactus.mp4" preload="auto" crossorigin="anonymous"></video>
+</a-assets>
+
+<a-marker preset="hiro" id="marker">
+
+  <a-video
+    src="#video"
+    width="2"
+    height="1"
+    position="0 0 0"
+    rotation="-90 0 0"
+  ></a-video>
+
+</a-marker>
+
+<a-entity camera></a-entity>
+</a-scene>
+
+<script>
+const marker = document.querySelector("#marker");
+const video = document.querySelector("#video");
+const quiz = document.getElementById("quiz");
+
+// Запуск видео при появлении маркера
+marker.addEventListener("markerFound", () => {
+  video.play();
+});
+
+// Пауза если убрали маркер
+marker.addEventListener("markerLost", () => {
+  video.pause();
+});
+
+// Когда видео закончилось → показать вопрос
+video.addEventListener("ended", () => {
+  quiz.style.display = "block";
+});
+
+// Проверка ответа
+function checkAnswer(num) {
+  if (num === 2) {
+    alert("Правильно! 🎉 Ночью активны опылители, например летучие мыши и мотыльки.");
+  } else {
+    alert("Попробуй ещё раз 😊");
+  }
+}
+</script>
+
+</body>
+</html>
